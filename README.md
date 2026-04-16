@@ -6,7 +6,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 ## Quick Start
 
-1. Copy the `kual-extension/` folder to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
+1. Copy the `kindle-series-manager` folder inside `kual-extension/` to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
 3. Open KUAL, tap **Start Web UI** under "Kindle Series"
 4. Note the URL shown on the Kindle screen (e.g. `http://10.0.0.224:8080/`)
 5. Open that URL on your phone or PC (same WiFi network)

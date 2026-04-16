@@ -36,7 +36,7 @@ bld/
 
 # Build results on 'Bin' directories
 **/[Bb]in/*
-!kual-extension/bin/*
+!kual-extension/kindle-series-manager/bin/*
 # Uncomment if you have tasks that rely on *.refresh files to move binaries
 # (https://github.com/github/gitignore/pull/3736)
 #!**/[Bb]in/*.refresh
