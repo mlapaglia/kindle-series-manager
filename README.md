@@ -4,6 +4,8 @@ Group sideloaded books into series on jailbroken Kindle devices — just like Am
 
 Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with store-purchased content. This KUAL extension lets you create, manage, and remove series groupings for sideloaded books through a web interface served from the Kindle itself.
 
+<img width="834" height="594" alt="image" src="https://github.com/user-attachments/assets/cca7067a-4591-42cc-9730-2f264757f27a" />
+
 ## Quick Start
 
 1. Copy the `kindle-series-manager` folder inside `kual-extension/` to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
@@ -13,6 +15,8 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 6. Tap **Create Series**, name it, select your books, drag them into reading order, and hit Create
 
 Books will appear grouped in the Kindle library within a few seconds.
+<img width="843" height="767" alt="image" src="https://github.com/user-attachments/assets/2899c76b-cc75-44e8-ad8f-07523b273930" />
+
 
 ## Back Up Your Database
 
