@@ -94,15 +94,6 @@ kindle-series-manager/
       remove.cgi
 ```
 
-### Set permissions
-
-SSH into the Kindle and make the binaries executable:
-
-```bash
-chmod +x /mnt/base-us/extensions/kindle-series-manager/bin/*
-chmod +x /mnt/base-us/extensions/kindle-series-manager/www/cgi-bin/*.cgi
-```
-
 ### Verify
 
 Open KUAL. You should see "Kindle Series Manager" with "Start Web UI", "Stop Web UI", "Backup Database", and "Restore Database" buttons.
