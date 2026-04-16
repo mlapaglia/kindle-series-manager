@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kindle Series Manager</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f8f8f8;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.header {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+.header .logo {
+  font-size: 22px;
+  opacity: 0.7;
+}
+
+.nav {
+  display: flex;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 12px;
+}
+.nav button {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.nav button:hover { color: #1a1a1a; }
+.nav button.active {
+  color: #1a1a1a;
+  border-bottom-color: #1a1a1a;
+}
+
+.container { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+#status {
+  padding: 10px 14px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  display: none;
+}
+#status.visible { display: block; }
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.card-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.card-subtitle {
+  font-size: 13px;
+  color: #888;
+  font-weight: 400;
+}
+
+.book-item {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #444;
+  border-bottom: 1px solid #f0f0f0;
+}
+.book-item:last-child { border-bottom: none; }
+.book-num {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-right: 8px;
+}
+
+.btn {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: #f5f5f5; border-color: #bbb; }
+.btn:active { background: #eee; }
+.btn-primary {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+.btn-primary:hover { background: #333; }
+.btn-danger {
+  color: #c0392b;
+  border-color: #e0c0bc;
+}
+.btn-danger:hover { background: #fdf2f0; border-color: #c0392b; }
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Create series panels */
+.create-layout { display: flex; gap: 16px; }
+.create-layout > div { flex: 1; min-width: 0; }
+
+.panel-header {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.input-field {
+  width: 100%;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.input-field:focus { outline: none; border-color: #1a1a1a; }
+.input-field::placeholder { color: #bbb; }
+.input-small { font-size: 13px; padding: 8px 10px; margin-bottom: 8px; }
+
+.selected-list {
+  min-height: 80px;
+  border: 2px dashed #d0d0d0;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fafafa;
+  transition: border-color 0.15s;
+}
+.selected-list.has-items { border-style: solid; border-color: #e0e0e0; background: #fff; }
+
+.selected-book {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin: 4px 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s, opacity 0.15s;
+}
+.selected-book:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.selected-book:active { cursor: grabbing; }
+.selected-book .grip {
+  color: #ccc;
+  margin-right: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+.selected-book .pos {
+  font-weight: 700;
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  margin-right: 10px;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.selected-book .title { flex: 1; font-size: 14px; }
+.selected-book .remove-btn {
+  cursor: pointer;
+  color: #ccc;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.selected-book .remove-btn:hover { color: #c0392b; }
+.selected-book.dragging { opacity: 0.3; }
+.selected-book.drag-over { border-top: 2px solid #1a1a1a; margin-top: 2px; }
+
+.avail-list {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+.avail-book {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.1s;
+}
+.avail-book:last-child { border-bottom: none; }
+.avail-book:hover { background: #f5f5f5; }
+.avail-book.added {
+  opacity: 0.3;
+  pointer-events: none;
+  text-decoration: line-through;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">&#x1F4DA;</span>
+  <h1>Kindle Series Manager</h1>
+</div>
+
+<div class="nav">
+  <button id="btnList" onclick="loadSeries()">My Series</button>
+  <button id="btnCreate" onclick="loadCreate()">Create Series</button>
+  <button id="btnPending" onclick="loadPending()">Pending</button>
+</div>
+
+<div class="container">
+  <div id="status"></div>
+  <div id="content"></div>
+</div>
+
+<script>
+var selectedBooks = [];
+
+function setStatus(msg) {
+  var el = document.getElementById('status');
+  if (msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+  } else {
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+}
+
+function setActive(id) {
+  var btns = document.querySelectorAll('.nav button');
+  for (var i = 0; i < btns.length; i++) btns[i].className = '';
+  if (id) document.getElementById(id).className = 'active';
+}
+
+function loadSeries() {
+  setActive('btnList');
+  setStatus('Loading...');
+  fetch('/cgi-bin/series.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function loadCreate() {
+  setActive('btnCreate');
+  setStatus('Loading books...');
+  selectedBooks = [];
+  fetch('/cgi-bin/books.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function loadPending() {
+  setActive('btnPending');
+  setStatus('Loading...');
+  fetch('/cgi-bin/pending.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function addBook(el) {
+  var key = el.getAttribute('data-key');
+  var title = el.getAttribute('data-title');
+  if (selectedBooks.some(function(b) { return b.key === key; })) return;
+  selectedBooks.push({ key: key, title: title });
+  el.classList.add('added');
+  renderSelected();
+}
+
+function removeBook(index) {
+  var removed = selectedBooks.splice(index, 1)[0];
+  var avail = document.querySelectorAll('.avail-book');
+  for (var i = 0; i < avail.length; i++) {
+    if (avail[i].getAttribute('data-key') === removed.key) {
+      avail[i].classList.remove('added');
+    }
+  }
+  renderSelected();
+}
+
+function renderSelected() {
+  var container = document.getElementById('selectedBooks');
+  var countEl = document.getElementById('selectedCount');
+  countEl.textContent = selectedBooks.length;
+
+  if (selectedBooks.length === 0) {
+    container.className = 'selected-list';
+    container.innerHTML = '<div class="empty-state">Click books from the right to add them</div>';
+  } else {
+    container.className = 'selected-list has-items';
+    var html = '';
+    for (var i = 0; i < selectedBooks.length; i++) {
+      html += '<div class="selected-book" draggable="true" data-idx="' + i + '">'
+        + '<span class="grip">&#x2630;</span>'
+        + '<span class="pos">' + (i + 1) + '</span>'
+        + '<span class="title">' + selectedBooks[i].title + '</span>'
+        + '<span class="remove-btn" onclick="removeBook(' + i + ')">&times;</span>'
+        + '</div>';
+    }
+    container.innerHTML = html;
+  }
+  setupDrag();
+}
+
+var dragSrcIdx = null;
+
+function setupDrag() {
+  var items = document.querySelectorAll('.selected-book');
+  for (var i = 0; i < items.length; i++) {
+    items[i].addEventListener('dragstart', function(e) {
+      dragSrcIdx = parseInt(this.getAttribute('data-idx'));
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragSrcIdx);
+    });
+    items[i].addEventListener('dragend', function(e) {
+      this.classList.remove('dragging');
+      var all = document.querySelectorAll('.selected-book');
+      for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
+    });
+    items[i].addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      var all = document.querySelectorAll('.selected-book');
+      for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
+      this.classList.add('drag-over');
+    });
+    items[i].addEventListener('drop', function(e) {
+      e.preventDefault();
+      var targetIdx = parseInt(this.getAttribute('data-idx'));
+      if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+      var moved = selectedBooks.splice(dragSrcIdx, 1)[0];
+      selectedBooks.splice(targetIdx, 0, moved);
+      renderSelected();
+    });
+  }
+}
+
+function filterBooks() {
+  var q = document.getElementById('bookFilter').value.toLowerCase();
+  var items = document.querySelectorAll('.avail-book');
+  for (var i = 0; i < items.length; i++) {
+    var title = items[i].getAttribute('data-title').toLowerCase();
+    items[i].style.display = title.indexOf(q) >= 0 ? '' : 'none';
+  }
+}
+
+function createSeries() {
+  var name = document.getElementById('newSeriesName').value.trim();
+  if (!name) { setStatus('Enter a series name'); return; }
+  if (selectedBooks.length < 2) { setStatus('Select at least 2 books'); return; }
+
+  var asin = document.getElementById('newSeriesAsin').value.trim();
+  var books = [];
+  for (var i = 0; i < selectedBooks.length; i++) {
+    books.push(selectedBooks[i].key + ':' + (i + 1));
+  }
+
+  setStatus('Creating series...');
+  var body = 'name=' + encodeURIComponent(name)
+    + '&asin=' + encodeURIComponent(asin)
+    + '&books=' + encodeURIComponent(books.join(','));
+
+  fetch('/cgi-bin/create.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      setStatus(text + ' Refreshing...');
+      setTimeout(function() { loadSeries(); }, 3000);
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function removeSeries(seriesId) {
+  if (!confirm('Remove this series? Books will return to the library.')) return;
+  setStatus('Removing...');
+  fetch('/cgi-bin/remove.cgi?id=' + encodeURIComponent(seriesId))
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      setStatus(text + ' Refreshing...');
+      setTimeout(function() { loadSeries(); }, 3000);
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+loadSeries();
+</script>
+</body>
+</html>

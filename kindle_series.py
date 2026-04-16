@@ -239,6 +239,22 @@ def remove_series(args):
 
     series_id = args.series_id
 
+    existing = conn.execute(
+        "SELECT COUNT(*) as cnt FROM Series WHERE d_seriesId = ?",
+        (series_id,),
+    ).fetchone()["cnt"]
+    if existing == 0:
+        print(f"ERROR: No series found with id '{series_id}'")
+        known = conn.execute(
+            "SELECT DISTINCT d_seriesId FROM Series ORDER BY d_seriesId"
+        ).fetchall()
+        if known:
+            print("\nKnown series IDs:")
+            for row in known:
+                print(f"  {row['d_seriesId']}")
+        conn.close()
+        sys.exit(1)
+
     if args.books:
         cde_keys = [k.strip() for k in args.books.split(",")]
         for key in cde_keys:
@@ -252,7 +268,7 @@ def remove_series(args):
             ).fetchone()["cnt"]
             if remaining == 0:
                 conn.execute(
-                    "UPDATE Entries SET p_seriesState = NULL "
+                    "UPDATE Entries SET p_seriesState = 1 "
                     "WHERE p_cdeKey = ? AND p_type = 'Entry:Item'",
                     (key,),
                 )
@@ -271,7 +287,7 @@ def remove_series(args):
             ).fetchone()["cnt"]
             if remaining == 0:
                 conn.execute(
-                    "UPDATE Entries SET p_seriesState = NULL "
+                    "UPDATE Entries SET p_seriesState = 1 "
                     "WHERE p_cdeKey = ? AND p_type = 'Entry:Item'",
                     (key,),
                 )
