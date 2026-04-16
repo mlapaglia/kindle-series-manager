@@ -14,8 +14,11 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 5. Open that URL on your phone or PC (same WiFi network)
 6. Tap **Create Series**, name it, select your books, drag them into reading order, and hit Create
 
-Books will appear grouped in the Kindle library within a few seconds.
 <img width="843" height="767" alt="image" src="https://github.com/user-attachments/assets/2899c76b-cc75-44e8-ad8f-07523b273930" />
+
+Books will appear grouped in the Kindle library within a few seconds.
+
+<img width="3072" height="4080" alt="image" src="https://github.com/user-attachments/assets/4e2eebce-bf5d-4506-b43b-6c2fb6bc66e0" />
 
 
 ## Back Up Your Database
