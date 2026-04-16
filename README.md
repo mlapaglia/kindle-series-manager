@@ -1,3 +1,4 @@
+![Kindle Series Manager](assets/banner.png)
 # Kindle Series Manager
 
 Group sideloaded books into series on jailbroken Kindle devices — just like Amazon-purchased books.
