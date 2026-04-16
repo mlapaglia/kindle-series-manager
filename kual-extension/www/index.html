@@ -263,7 +263,7 @@ body {
 <div class="nav">
   <button id="btnList" onclick="loadSeries()">My Series</button>
   <button id="btnCreate" onclick="loadCreate()">Create Series</button>
-  <button id="btnPending" onclick="loadPending()">Pending</button>
+
 </div>
 
 <div class="container">
@@ -308,18 +308,6 @@ function loadCreate() {
   setStatus('Loading books...');
   selectedBooks = [];
   fetch('/cgi-bin/books.cgi')
-    .then(function(r) { return r.text(); })
-    .then(function(text) {
-      document.getElementById('content').innerHTML = text;
-      setStatus('');
-    })
-    .catch(function(e) { setStatus('Error: ' + e); });
-}
-
-function loadPending() {
-  setActive('btnPending');
-  setStatus('Loading...');
-  fetch('/cgi-bin/pending.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
       document.getElementById('content').innerHTML = text;

@@ -15,6 +15,18 @@
           "priority": 1,
           "action": "bin/stopweb.sh",
           "exitmenu": true
+        },
+        {
+          "name": "Backup Database",
+          "priority": 2,
+          "action": "bin/backup.sh",
+          "exitmenu": true
+        },
+        {
+          "name": "Restore Database",
+          "priority": 3,
+          "action": "bin/restore.sh",
+          "exitmenu": true
         }
       ]
     }

@@ -15,6 +15,31 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 Books will appear grouped in the Kindle library within a few seconds.
 
+## Back Up Your Database
+
+This tool modifies your Kindle's content catalogue database (`/var/local/cc.db`) directly. If something goes wrong, a corrupt or incorrect database can cause books to disappear from your library until the database is fixed. **Always create a backup before making changes.**
+
+The KUAL menu includes **Backup Database** and **Restore Database** actions:
+
+- **Backup Database** copies `/var/local/cc.db` to `/var/local/cc.db.bak`
+- **Restore Database** stops `ccat`, copies the backup back over `cc.db`, and restarts `ccat`
+
+Run **Backup Database** before your first series operation. If anything goes wrong, tap **Restore Database** to revert.
+
+You can also back up manually over SSH:
+
+```bash
+scp root@<kindle-ip>:/var/local/cc.db ./cc.db.bak
+```
+
+And restore manually:
+
+```bash
+ssh root@<kindle-ip> "stop com.lab126.ccat"
+scp ./cc.db.bak root@<kindle-ip>:/var/local/cc.db
+ssh root@<kindle-ip> "start com.lab126.ccat"
+```
+
 ## Requirements
 
 - Jailbroken Kindle with KUAL installed
@@ -30,8 +55,6 @@ The extension runs a lightweight HTTP server on the Kindle (a static busybox bin
 
 - **My Series** — view all series on the device with book lists; remove series with one tap
 - **Create Series** — two-panel interface: pick books from your library on the right, they appear in the reading order panel on the left. Drag to reorder. Optionally provide an Amazon series ASIN for better firmware integration
-- **Pending** — preview series queued by the standalone `kindle_series.py` tool (if used)
-
 ### Architecture
 
 Series grouping in `cc.db` requires three things:
@@ -62,6 +85,8 @@ kindle-series-manager/
     busybox-httpd      (static ARM binary, ~1MB)
     webapp.sh
     stopweb.sh
+    backup.sh
+    restore.sh
   www/
     index.html
     cgi-bin/
@@ -69,7 +94,6 @@ kindle-series-manager/
       books.cgi
       create.cgi
       remove.cgi
-      pending.cgi
 ```
 
 ### Set permissions
@@ -83,7 +107,7 @@ chmod +x /mnt/base-us/extensions/kindle-series-manager/www/cgi-bin/*.cgi
 
 ### Verify
 
-Open KUAL. You should see "Kindle Series" with "Start Web UI" and "Stop Web UI" buttons.
+Open KUAL. You should see "Kindle Series Manager" with "Start Web UI", "Stop Web UI", "Backup Database", and "Restore Database" buttons.
 
 ## Usage
 
