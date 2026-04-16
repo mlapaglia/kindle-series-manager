@@ -18,9 +18,6 @@ if [ "$COUNT" -eq 0 ] 2>/dev/null; then
     exit 0
 fi
 
-echo "Removing $COUNT books... Refresh 'My Series' in a moment."
-
-(
 mntroot rw
 
 stop com.lab126.ccat 2>/dev/null
@@ -46,4 +43,4 @@ sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(R
 start com.lab126.ccat 2>/dev/null
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Removed series $SERIES_ID ($COUNT books)" >> "$LOG"
-) &
+echo "Removed $COUNT books from series."

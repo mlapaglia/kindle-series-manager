@@ -26,6 +26,7 @@ urldecode() {
 SERIES_NAME=""
 SERIES_ASIN=""
 BOOKS_RAW=""
+EDIT_ID=""
 
 OLDIFS="$IFS"
 IFS='&'
@@ -33,14 +34,15 @@ for PARAM in $POST_BODY; do
     PKEY=$(echo "$PARAM" | cut -d'=' -f1)
     PVAL=$(echo "$PARAM" | cut -d'=' -f2-)
     case "$PKEY" in
-        name)  SERIES_NAME=$(urldecode "$PVAL") ;;
-        asin)  SERIES_ASIN=$(urldecode "$PVAL") ;;
-        books) BOOKS_RAW=$(urldecode "$PVAL") ;;
+        name)    SERIES_NAME=$(urldecode "$PVAL") ;;
+        asin)    SERIES_ASIN=$(urldecode "$PVAL") ;;
+        books)   BOOKS_RAW=$(urldecode "$PVAL") ;;
+        edit_id) EDIT_ID=$(urldecode "$PVAL") ;;
     esac
 done
 IFS="$OLDIFS"
 
-logit "Parsed: name='$SERIES_NAME' asin='$SERIES_ASIN' books='$BOOKS_RAW'"
+logit "Parsed: name='$SERIES_NAME' asin='$SERIES_ASIN' books='$BOOKS_RAW' edit_id='$EDIT_ID'"
 
 if [ -z "$SERIES_NAME" ]; then
     echo "Error: series name is required"
@@ -51,13 +53,6 @@ if [ -z "$BOOKS_RAW" ]; then
     echo "Error: select at least one book"
     exit 0
 fi
-
-# Count books for the response
-BOOK_TOTAL=$(echo "$BOOKS_RAW" | tr ',' '\n' | wc -l)
-echo "Creating '$SERIES_NAME' with $BOOK_TOTAL books... Refresh 'My Series' in a moment."
-
-# Fork the heavy work to the background so the HTTP response returns immediately
-(
 
 # Generate series key
 if [ -n "$SERIES_ASIN" ]; then
@@ -73,6 +68,20 @@ logit "Series key: $S_KEY  id: $S_ID"
 mntroot rw
 stop com.lab126.ccat 2>/dev/null
 logit "Stopped ccat"
+
+if [ -n "$EDIT_ID" ]; then
+    ESC_EDIT_ID=$(escape_sql "$EDIT_ID")
+    logit "Editing: removing old series $EDIT_ID"
+    OLD_MEMBER_KEYS=$(sqlite3 "$DB" "SELECT d_itemCdeKey FROM Series WHERE d_seriesId='$ESC_EDIT_ID';")
+    sqlite3 "$DB" "DELETE FROM Series WHERE d_seriesId='$ESC_EDIT_ID';"
+    for KEY in $OLD_MEMBER_KEYS; do
+        ESC_OLD_KEY=$(escape_sql "$KEY")
+        REMAINING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_itemCdeKey='$ESC_OLD_KEY';")
+        if [ "$REMAINING" -eq 0 ] 2>/dev/null; then
+            sqlite3 "$DB" "UPDATE Entries SET p_seriesState=1 WHERE p_cdeKey='$ESC_OLD_KEY' AND p_type='Entry:Item';"
+        fi
+    done
+fi
 
 BOOK_COUNT=0
 
@@ -119,6 +128,15 @@ logit "Stripping ICU for INSERT..."
 
 # Strip ICU, insert, restore
 sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(sql, ' COLLATE icu', '') WHERE type='table' AND name='Entries'; DROP INDEX IF EXISTS EntriesCredit0CollationIndex; DROP INDEX IF EXISTS EntriesTitles0Index; PRAGMA writable_schema=OFF;" 2>> "$LOG"
+
+if [ -n "$EDIT_ID" ]; then
+    OLD_S_KEY=$(echo "$EDIT_ID" | sed 's/urn:collection:1:asin-//')
+    if [ "$OLD_S_KEY" != "$S_KEY" ]; then
+        ESC_OLD_S_KEY=$(escape_sql "$OLD_S_KEY")
+        logit "Series key changed from $OLD_S_KEY to $S_KEY, removing old Entry"
+        sqlite3 "$DB" "DELETE FROM Entries WHERE p_cdeKey='$ESC_OLD_S_KEY' AND p_type='Entry:Item:Series';" 2>> "$LOG"
+    fi
+fi
 
 EXISTING=$(sqlite3 "$DB" "SELECT p_uuid FROM Entries WHERE p_cdeKey='$ESC_S_KEY' AND p_type='Entry:Item:Series';")
 SQL_FILE="/tmp/kindle_series_create_$$.sql"
@@ -190,4 +208,9 @@ rm -f "$SQL_FILE"
 start com.lab126.ccat 2>/dev/null
 logit "Started ccat. Done."
 
-) &
+BOOK_COUNT_FINAL=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_seriesId='$ESC_S_ID';")
+if [ -n "$EDIT_ID" ]; then
+    echo "Updated '$SERIES_NAME' with $BOOK_COUNT_FINAL books."
+else
+    echo "Created '$SERIES_NAME' with $BOOK_COUNT_FINAL books."
+fi

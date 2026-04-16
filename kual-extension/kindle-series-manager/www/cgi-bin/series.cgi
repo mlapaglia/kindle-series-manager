@@ -23,7 +23,7 @@ for SID in $SERIES_IDS; do
     echo "<div class='card'>"
     echo "<div class='card-header'>"
     echo "<div><span class='card-title'>$TITLE</span> <span class='card-subtitle'>$COUNT books</span></div>"
-    echo "<button class='btn btn-danger' onclick=\"removeSeries('$SID')\">Remove</button>"
+    echo "<div style='display:flex;gap:8px;'><button class='btn' onclick=\"editSeries('$SID')\">Edit</button><button class='btn btn-danger' onclick=\"removeSeries('$SID')\">Remove</button></div>"
     echo "</div>"
 
     sqlite3 "$DB" "SELECT '<div class=\"book-item\"><span class=\"book-num\">' || d_itemPositionLabel || '</span>' || COALESCE((SELECT p_titles_0_nominal FROM Entries WHERE p_cdeKey=d_itemCdeKey AND p_type='Entry:Item' LIMIT 1), '(unknown)') || '</div>' FROM Series WHERE d_seriesId='$SID' ORDER BY d_itemPosition;"

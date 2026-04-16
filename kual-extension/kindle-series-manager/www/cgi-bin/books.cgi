@@ -20,7 +20,7 @@ echo "<div id='selectedBooks' class='selected-list'>"
 echo "<div class='empty-state'>Click books from the right to add them</div>"
 echo "</div>"
 echo "<br>"
-echo "<button class='btn btn-primary' onclick='createSeries()' style='width:100%;padding:12px;font-size:15px;'>Create Series</button>"
+echo "<button id='btnSave' class='btn btn-primary' onclick='saveSeries()' style='width:100%;padding:12px;font-size:15px;'>Create Series</button>"
 echo "</div>"
 
 echo "<div>"

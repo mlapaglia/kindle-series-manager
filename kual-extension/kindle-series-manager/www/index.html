@@ -273,6 +273,7 @@ body {
 
 <script>
 var selectedBooks = [];
+var editingSeriesId = null;
 
 function setStatus(msg) {
   var el = document.getElementById('status');
@@ -307,6 +308,7 @@ function loadCreate() {
   setActive('btnCreate');
   setStatus('Loading books...');
   selectedBooks = [];
+  editingSeriesId = null;
   fetch('/cgi-bin/books.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
@@ -314,6 +316,39 @@ function loadCreate() {
       setStatus('');
     })
     .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function editSeries(seriesId) {
+  setActive('btnCreate');
+  setStatus('Loading...');
+  selectedBooks = [];
+  editingSeriesId = seriesId;
+
+  Promise.all([
+    fetch('/cgi-bin/seriesdata.cgi?id=' + encodeURIComponent(seriesId)).then(function(r) { return r.json(); }),
+    fetch('/cgi-bin/books.cgi').then(function(r) { return r.text(); })
+  ]).then(function(results) {
+    var data = results[0];
+    var html = results[1];
+
+    document.getElementById('content').innerHTML = html;
+    document.getElementById('newSeriesName').value = data.name;
+    document.getElementById('newSeriesAsin').value = data.asin || '';
+
+    selectedBooks = data.books;
+    renderSelected();
+
+    var avail = document.querySelectorAll('.avail-book');
+    for (var i = 0; i < avail.length; i++) {
+      var key = avail[i].getAttribute('data-key');
+      if (selectedBooks.some(function(b) { return b.key === key; })) {
+        avail[i].classList.add('added');
+      }
+    }
+
+    document.getElementById('btnSave').textContent = 'Update Series';
+    setStatus('');
+  }).catch(function(e) { setStatus('Error: ' + e); });
 }
 
 function addBook(el) {
@@ -403,7 +438,7 @@ function filterBooks() {
   }
 }
 
-function createSeries() {
+function saveSeries() {
   var name = document.getElementById('newSeriesName').value.trim();
   if (!name) { setStatus('Enter a series name'); return; }
   if (selectedBooks.length < 2) { setStatus('Select at least 2 books'); return; }
@@ -414,10 +449,15 @@ function createSeries() {
     books.push(selectedBooks[i].key + ':' + (i + 1));
   }
 
-  setStatus('Creating series...');
+  var isEdit = !!editingSeriesId;
+  setStatus(isEdit ? 'Updating series...' : 'Creating series...');
   var body = 'name=' + encodeURIComponent(name)
     + '&asin=' + encodeURIComponent(asin)
     + '&books=' + encodeURIComponent(books.join(','));
+
+  if (isEdit) {
+    body += '&edit_id=' + encodeURIComponent(editingSeriesId);
+  }
 
   fetch('/cgi-bin/create.cgi', {
     method: 'POST',
@@ -426,8 +466,9 @@ function createSeries() {
   })
     .then(function(r) { return r.text(); })
     .then(function(text) {
-      setStatus(text + ' Refreshing...');
-      setTimeout(function() { loadSeries(); }, 3000);
+      editingSeriesId = null;
+      setStatus(text);
+      loadSeries();
     })
     .catch(function(e) { setStatus('Error: ' + e); });
 }
@@ -438,8 +479,8 @@ function removeSeries(seriesId) {
   fetch('/cgi-bin/remove.cgi?id=' + encodeURIComponent(seriesId))
     .then(function(r) { return r.text(); })
     .then(function(text) {
-      setStatus(text + ' Refreshing...');
-      setTimeout(function() { loadSeries(); }, 3000);
+      setStatus(text);
+      loadSeries();
     })
     .catch(function(e) { setStatus('Error: ' + e); });
 }
