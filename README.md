@@ -6,8 +6,8 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 ## Quick Start
 
-1. Copy the `kual-extension/` folder to your Kindle at `Internal Storage/extensions/kindle-series/`
-2. SSH in and run `chmod +x /mnt/base-us/extensions/kindle-series/bin/*`
+1. Copy the `kual-extension/` folder to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
+2. SSH in and run `chmod +x /mnt/base-us/extensions/kindle-series-manager/bin/*`
 3. Open KUAL, tap **Start Web UI** under "Kindle Series"
 4. Note the URL shown on the Kindle screen (e.g. `http://10.0.0.224:8080/`)
 5. Open that URL on your phone or PC (same WiFi network)
@@ -49,13 +49,13 @@ The CGI scripts handle all of this, including a workaround for the ICU collation
 Connect the Kindle via USB and copy the `kual-extension/` folder to:
 
 ```
-Internal Storage/extensions/kindle-series/
+Internal Storage/extensions/kindle-series-manager/
 ```
 
 The folder should contain:
 
 ```
-kindle-series/
+kindle-series-manager/
   config.xml
   menu.json
   bin/
@@ -77,8 +77,8 @@ kindle-series/
 SSH into the Kindle and make the binaries executable:
 
 ```bash
-chmod +x /mnt/base-us/extensions/kindle-series/bin/*
-chmod +x /mnt/base-us/extensions/kindle-series/www/cgi-bin/*.cgi
+chmod +x /mnt/base-us/extensions/kindle-series-manager/bin/*
+chmod +x /mnt/base-us/extensions/kindle-series-manager/www/cgi-bin/*.cgi
 ```
 
 ### Verify

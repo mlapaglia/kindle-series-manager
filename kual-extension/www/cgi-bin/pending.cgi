@@ -3,7 +3,7 @@ echo "Content-Type: text/html"
 echo ""
 
 DB="/var/local/cc.db"
-PENDING="/mnt/base-us/extensions/kindle-series/pending.txt"
+PENDING="/mnt/base-us/extensions/kindle-series-manager/pending.txt"
 
 if [ ! -f "$PENDING" ]; then
     echo "<div class='empty-state'>No pending.txt found. Use the Calibre plugin to generate one.</div>"

@@ -4,11 +4,11 @@
 # Access from your phone/PC on the same WiFi network.
 #
 
-EXT_DIR="/mnt/base-us/extensions/kindle-series"
+EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
 WWW_DIR="$EXT_DIR/www"
 HTTPD="$EXT_DIR/bin/busybox-httpd"
 PORT=8080
-PIDFILE="/tmp/kindle_series_httpd.pid"
+PIDFILE="/tmp/kindle_series_manager_httpd.pid"
 
 mntroot rw
 

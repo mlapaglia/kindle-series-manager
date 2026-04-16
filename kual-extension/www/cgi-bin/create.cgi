@@ -3,7 +3,7 @@ echo "Content-Type: text/plain"
 echo ""
 
 DB="/var/local/cc.db"
-LOG="/mnt/base-us/extensions/kindle-series/series.log"
+LOG="/mnt/base-us/extensions/kindle-series-manager/series.log"
 
 logit() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [create] $1" >> "$LOG"
