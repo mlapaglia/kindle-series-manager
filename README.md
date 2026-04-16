@@ -7,7 +7,6 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 ## Quick Start
 
 1. Copy the `kual-extension/` folder to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
-2. SSH in and run `chmod +x /mnt/base-us/extensions/kindle-series-manager/bin/*`
 3. Open KUAL, tap **Start Web UI** under "Kindle Series"
 4. Note the URL shown on the Kindle screen (e.g. `http://10.0.0.224:8080/`)
 5. Open that URL on your phone or PC (same WiFi network)
@@ -18,7 +17,6 @@ Books will appear grouped in the Kindle library within a few seconds.
 ## Requirements
 
 - Jailbroken Kindle with KUAL installed
-- SSH access (for initial setup)
 - WiFi connection (Kindle and phone/PC on the same network)
 - "Group Series in Library" enabled in Kindle Settings
 
