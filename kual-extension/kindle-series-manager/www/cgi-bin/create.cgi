@@ -27,6 +27,7 @@ SERIES_NAME=""
 SERIES_ASIN=""
 BOOKS_RAW=""
 EDIT_ID=""
+BADGE_MODE="none"
 
 OLDIFS="$IFS"
 IFS='&'
@@ -37,7 +38,8 @@ for PARAM in $POST_BODY; do
         name)    SERIES_NAME=$(urldecode "$PVAL") ;;
         asin)    SERIES_ASIN=$(urldecode "$PVAL") ;;
         books)   BOOKS_RAW=$(urldecode "$PVAL") ;;
-        edit_id) EDIT_ID=$(urldecode "$PVAL") ;;
+        edit_id)    EDIT_ID=$(urldecode "$PVAL") ;;
+        badge_mode) BADGE_MODE=$(urldecode "$PVAL") ;;
     esac
 done
 IFS="$OLDIFS"
@@ -98,7 +100,12 @@ for ENTRY in $BOOKS_RAW; do
 
     sqlite3 "$DB" "INSERT OR REPLACE INTO Series (d_seriesId, d_itemCdeKey, d_itemPosition, d_itemPositionLabel, d_itemType, d_seriesOrderType) VALUES ('$ESC_S_ID', '$ESC_KEY', $POS_0.0, '$POS', 'Entry:Item', 'ordered');" 2>> "$LOG"
 
-    sqlite3 "$DB" "UPDATE Entries SET p_seriesState=0 WHERE p_cdeKey='$ESC_KEY' AND p_type='Entry:Item';" 2>> "$LOG"
+    case "$BADGE_MODE" in
+        ku)   ORIGIN_VAL=21; CONTENT_VAL=1 ;;
+        kupr) ORIGIN_VAL="NULL"; CONTENT_VAL=0 ;;
+        *)    ORIGIN_VAL=0; CONTENT_VAL=1 ;;
+    esac
+    sqlite3 "$DB" "UPDATE Entries SET p_seriesState=0, p_originType=$ORIGIN_VAL, p_contentState=$CONTENT_VAL WHERE p_cdeKey='$ESC_KEY' AND p_type='Entry:Item';" 2>> "$LOG"
 
     BOOK_COUNT=$((BOOK_COUNT + 1))
 done

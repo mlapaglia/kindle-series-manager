@@ -346,6 +346,10 @@ function editSeries(seriesId) {
       }
     }
 
+    var badgeVal = data.badgeMode || 'none';
+    var badgeRadio = document.querySelector('input[name="badgeMode"][value="' + badgeVal + '"]');
+    if (badgeRadio) badgeRadio.checked = true;
+
     document.getElementById('btnSave').textContent = 'Update Series';
     setStatus('');
   }).catch(function(e) { setStatus('Error: ' + e); });
@@ -449,10 +453,17 @@ function saveSeries() {
     books.push(selectedBooks[i].key + ':' + (i + 1));
   }
 
+  var badgeMode = 'none';
+  var badgeRadios = document.getElementsByName('badgeMode');
+  for (var j = 0; j < badgeRadios.length; j++) {
+    if (badgeRadios[j].checked) { badgeMode = badgeRadios[j].value; break; }
+  }
+
   var isEdit = !!editingSeriesId;
   setStatus(isEdit ? 'Updating series...' : 'Creating series...');
   var body = 'name=' + encodeURIComponent(name)
     + '&asin=' + encodeURIComponent(asin)
+    + '&badge_mode=' + encodeURIComponent(badgeMode)
     + '&books=' + encodeURIComponent(books.join(','));
 
   if (isEdit) {
