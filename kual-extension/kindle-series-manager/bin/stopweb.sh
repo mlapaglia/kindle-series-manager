@@ -33,6 +33,22 @@ cat > "$EXT_DIR/menu.json" << 'EOF'
           "exitmenu": false
         },
         {
+          "name": "Disable Goodreads Sync",
+          "priority": 1,
+          "action": "bin/gr_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_GR_SYNC\" -f"
+        },
+        {
+          "name": "Enable Goodreads Sync",
+          "priority": 1,
+          "action": "bin/gr_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_GR_SYNC\" -f !"
+        },
+        {
           "name": "Backup Database",
           "priority": 2,
           "action": "bin/backup.sh",

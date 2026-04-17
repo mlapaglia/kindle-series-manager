@@ -29,6 +29,12 @@ cat > "$EXT_DIR/menu.json" << EOF
           "priority": -1
         },
         {
+          "name": "Open on Kindle",
+          "action": "lipc-set-prop com.lab126.browser open http://kindle-series.local:$PORT/",
+          "priority": 0,
+          "exitmenu": true
+        },
+        {
           "name": "Stop Web UI",
           "priority": 1,
           "action": "bin/stopweb.sh",
@@ -36,14 +42,30 @@ cat > "$EXT_DIR/menu.json" << EOF
           "exitmenu": false
         },
         {
-          "name": "Backup Database",
+          "name": "Disable Goodreads Sync",
           "priority": 2,
+          "action": "bin/gr_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_GR_SYNC\" -f"
+        },
+        {
+          "name": "Enable Goodreads Sync",
+          "priority": 2,
+          "action": "bin/gr_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_GR_SYNC\" -f !"
+        },
+        {
+          "name": "Backup Database",
+          "priority": 3,
           "action": "bin/backup.sh",
           "exitmenu": true
         },
         {
           "name": "Restore Database",
-          "priority": 3,
+          "priority": 4,
           "action": "bin/restore.sh",
           "exitmenu": true
         }
