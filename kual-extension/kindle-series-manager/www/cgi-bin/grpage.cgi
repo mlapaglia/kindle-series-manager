@@ -39,7 +39,7 @@ echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Goodreads Credentials</span></div>"
 echo "<input type='text' id='grEmail' class='input-field input-small' placeholder='Email' value='$EMAIL'>"
 echo "<input type='password' id='grPassword' class='input-field input-small' placeholder='Password'>"
-echo "<input type='text' id='grUserId' class='input-field input-small' placeholder='Goodreads User ID (e.g. 183958037)' value='$USER_ID'>"
+echo "<input type='text' id='grUserId' class='input-field input-small' placeholder='Goodreads User ID (e.g. 143258043)' value='$USER_ID'>"
 echo "<button class='btn' onclick='grSaveCreds()' style='margin-right:8px;'>Save Credentials</button>"
 echo "<span id='credsStatus' style='font-size:13px;color:var(--fg-muted);'></span>"
 echo "</div>"
@@ -48,10 +48,11 @@ echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Authentication</span></div>"
 if [ "$LOGGED_IN" = "true" ]; then
     echo "<div style='margin-bottom:8px;font-size:14px;color:var(--fg-muted);'>Status: <strong style='color:#27ae60;'>Logged in</strong></div>"
+    echo "<button class='btn btn-danger' onclick='grLogout()'>Log out of Goodreads</button>"
 else
     echo "<div style='margin-bottom:8px;font-size:14px;color:var(--fg-muted);'>Status: <strong style='color:var(--danger);'>Not logged in</strong></div>"
+    echo "<button class='btn' onclick='grLogin()'>Sign In to Goodreads</button>"
 fi
-echo "<button class='btn' onclick='grLogin()'>Sign In to Goodreads</button>"
 echo "<pre id='loginOutput' style='margin-top:8px;font-size:12px;max-height:200px;overflow-y:auto;background:var(--surface-alt);padding:8px;border-radius:6px;border:1px solid var(--border);display:none;white-space:pre-wrap;word-break:break-all;'></pre>"
 echo "</div>"
 

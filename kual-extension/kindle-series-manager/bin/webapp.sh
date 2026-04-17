@@ -29,12 +29,6 @@ cat > "$EXT_DIR/menu.json" << EOF
           "priority": -1
         },
         {
-          "name": "Open on Kindle",
-          "action": "lipc-set-prop com.lab126.browser open http://kindle-series.local:$PORT/",
-          "priority": 0,
-          "exitmenu": true
-        },
-        {
           "name": "Stop Web UI",
           "priority": 1,
           "action": "bin/stopweb.sh",

@@ -608,6 +608,13 @@ function grSaveCreds() {
     .catch(function(e) { statusEl.textContent = 'Error: ' + e; });
 }
 
+function grLogout() {
+  fetch('/cgi-bin/gr_logout.cgi', { method: 'POST' })
+    .then(function(r) { return r.text(); })
+    .then(function() { loadProgress(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
 function grLogin() {
   var el = document.getElementById('loginOutput');
   el.style.display = 'block';
@@ -621,7 +628,6 @@ function grLogin() {
     .then(function(r) { return r.text(); })
     .then(function(text) {
       el.textContent = text;
-      grRefreshStatus();
     })
     .catch(function(e) { el.textContent = 'Error: ' + e; });
 }
@@ -645,15 +651,7 @@ function grBuildMapping() {
 }
 
 function grRefreshStatus() {
-  fetch('/cgi-bin/gr_status.cgi')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var logEl = document.getElementById('syncLog');
-      if (logEl && data.last_log) {
-        logEl.textContent = data.last_log;
-      }
-    })
-    .catch(function(e) { setStatus('Error refreshing status: ' + e); });
+  loadProgress();
 }
 
 loadSeries();

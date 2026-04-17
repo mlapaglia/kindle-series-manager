@@ -41,7 +41,7 @@ fi
 echo "Found auth portal URL"
 
 echo ""
-echo "=== Step 2: Fetch Amazon login form ==="
+echo "=== Step 2: Fetch Goodreads login form ==="
 AP_HTML=$(curl -s -L -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
     -H "User-Agent: $UA" \
     -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
@@ -119,7 +119,7 @@ CSRF_TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o 'csrf-token" content="[^"]*"' | he
 if [ -z "$CSRF_TOKEN" ]; then
     AUTH_ERROR=$(echo "$LOGIN_RESPONSE" | grep -o 'auth-error-message-box\|important-message-box\|a]ert-heading\|error-slot' | head -1)
     if [ -n "$AUTH_ERROR" ]; then
-        echo "ERROR: Login failed - Amazon returned an error. Check credentials."
+        echo "ERROR: Login failed - Goodreads returned an error. Check credentials."
         ERROR_MSG=$(echo "$LOGIN_RESPONSE" | grep -o 'class="a-list-item">[^<]*<' | head -1 | sed 's/.*>//;s/<$//')
         if [ -n "$ERROR_MSG" ]; then
             echo "  Message: $ERROR_MSG"
@@ -127,7 +127,7 @@ if [ -z "$CSRF_TOKEN" ]; then
     else
         AP_STILL=$(echo "$LOGIN_RESPONSE" | grep -c "ap/signin\|ap_email\|signIn_submit")
         if [ "$AP_STILL" -gt 0 ]; then
-            echo "ERROR: Still on Amazon login page. Possible CAPTCHA or MFA required."
+            echo "ERROR: Still on Goodreads login page. Possible CAPTCHA or MFA required."
         else
             echo "ERROR: Could not extract CSRF token from final page."
             echo "Response may have landed on an unexpected page."
