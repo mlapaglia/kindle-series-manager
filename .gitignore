@@ -10,6 +10,16 @@
 *.userosscache
 *.sln.docstates
 *.env
+goodreads/gr_creds.json
+goodreads/gr_cookies.txt
+goodreads/gr_session.txt
+goodreads/debug/
+goodreads/gr_mapping.json
+goodreads/gr_response.tmp
+goodreads/gr_last_progress.txt
+goodreads/gr_total_pages.txt
+goodreads/gr_sync.log
+goodreads/gr_shelf.tmp
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
