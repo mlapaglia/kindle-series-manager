@@ -49,12 +49,16 @@ SAFE_EMAIL=$(echo "$EMAIL" | sed 's/\\/\\\\/g;s/"/\\"/g')
 SAFE_PASSWORD=$(echo "$PASSWORD" | sed 's/\\/\\\\/g;s/"/\\"/g')
 SAFE_USER_ID=$(echo "$USER_ID" | sed 's/\\/\\\\/g;s/"/\\"/g')
 
-cat > "$CREDS_FILE" << EOF
+(
+    umask 077
+    cat > "$CREDS_FILE" << EOF
 {
   "email": "$SAFE_EMAIL",
   "password": "$SAFE_PASSWORD",
   "goodreads_user_id": "$SAFE_USER_ID"
 }
 EOF
+)
+chmod 600 "$CREDS_FILE"
 
 echo "Credentials saved."

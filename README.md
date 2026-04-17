@@ -97,6 +97,7 @@ The extension can automatically sync your reading progress to Goodreads whenever
 1. Start the web UI and go to the **Progress Tracking** tab
 2. Enter your Goodreads email, password, and user ID, then click **Save Credentials**
    - Your Goodreads user ID is the number in your profile URL: `goodreads.com/user/show/183958037` → `183958037`
+   - **Note:** Credentials are stored in plaintext on the device at `goodreads/gr_creds.json` (file permissions are restricted to root). Do not use this on a shared or untrusted device.
 3. Click **Sign In to Goodreads** — the output panel shows the login flow. On success you'll see "Login successful!"
 4. Click **Build Mapping** — this fetches your Goodreads "currently-reading" shelf and matches those books against your Kindle library by title. The results table shows which books were matched.
 5. In KUAL, tap **Enable Goodreads Sync** to start the background sync daemon

@@ -202,20 +202,21 @@ check_and_sync
 FIFO="$SCRIPT_DIR/gr_events.fifo"
 rm -f "$FIFO"
 mkfifo "$FIFO"
+exec 3<>"$FIFO"
 
-lipc-wait-event -m com.lab126.appmgrd appActivating >> "$FIFO" 2>/dev/null &
+lipc-wait-event -m com.lab126.appmgrd appActivating >&3 2>/dev/null &
 APPMGR_PID=$!
 
-lipc-wait-event -m com.lab126.powerd goingToScreenSaver >> "$FIFO" 2>/dev/null &
+lipc-wait-event -m com.lab126.powerd goingToScreenSaver >&3 2>/dev/null &
 POWERD_PID=$!
 
-trap "kill $APPMGR_PID $POWERD_PID 2>/dev/null; rm -f $FIFO; exit 0" INT TERM
+trap "kill $APPMGR_PID $POWERD_PID 2>/dev/null; exec 3>&-; exec 3<&-; rm -f \"$FIFO\"; exit 0" INT TERM
 
-while read -r LINE; do
+while read -r LINE <&3; do
     case "$LINE" in
         "appActivating 1 "*) continue ;;
     esac
     log "Event: $LINE"
     sleep 2
     check_and_sync
-done < "$FIFO"
+done

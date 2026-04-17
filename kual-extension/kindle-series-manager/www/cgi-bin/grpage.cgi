@@ -9,12 +9,18 @@ MAPPING_FILE="$GR_DIR/gr_mapping.json"
 LOG_FILE="$GR_DIR/gr_sync.log"
 FLAG_FILE="/mnt/us/ENABLE_GR_SYNC"
 
+html_escape() {
+    echo "$1" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g;s/'"'"'/\&#39;/g'
+}
+
 EMAIL=""
 USER_ID=""
 if [ -f "$CREDS_FILE" ]; then
     EMAIL=$(grep '"email"' "$CREDS_FILE" | sed 's/.*"email".*"\([^"]*\)".*/\1/')
     USER_ID=$(grep '"goodreads_user_id"' "$CREDS_FILE" | sed 's/.*"goodreads_user_id".*"\([^"]*\)".*/\1/')
 fi
+SAFE_EMAIL=$(html_escape "$EMAIL")
+SAFE_USER_ID=$(html_escape "$USER_ID")
 
 LOGGED_IN="false"
 if [ -f "$COOKIE_JAR" ] && [ -f "$GR_DIR/gr_session.txt" ]; then
@@ -37,9 +43,9 @@ echo "<div>"
 
 echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Goodreads Credentials</span></div>"
-echo "<input type='text' id='grEmail' class='input-field input-small' placeholder='Email' value='$EMAIL'>"
+echo "<input type='text' id='grEmail' class='input-field input-small' placeholder='Email' value='$SAFE_EMAIL'>"
 echo "<input type='password' id='grPassword' class='input-field input-small' placeholder='Password'>"
-echo "<input type='text' id='grUserId' class='input-field input-small' placeholder='Goodreads User ID (e.g. 143258043)' value='$USER_ID'>"
+echo "<input type='text' id='grUserId' class='input-field input-small' placeholder='Goodreads User ID (e.g. 183958037)' value='$SAFE_USER_ID'>"
 echo "<button class='btn' onclick='grSaveCreds()' style='margin-right:8px;'>Save Credentials</button>"
 echo "<span id='credsStatus' style='font-size:13px;color:var(--fg-muted);'></span>"
 echo "</div>"
@@ -70,6 +76,9 @@ if [ -f "$MAPPING_FILE" ]; then
         K_TITLE=$(echo "$LINE" | grep -o '"kindleTitle":"[^"]*"' | sed 's/"kindleTitle":"//;s/"//')
         G_TITLE=$(echo "$LINE" | grep -o '"grTitle":"[^"]*"' | sed 's/"grTitle":"//;s/"//')
         G_ID=$(echo "$LINE" | grep -o '"grBookId":"[^"]*"' | sed 's/"grBookId":"//;s/"//')
+        K_TITLE=$(html_escape "$K_TITLE")
+        G_TITLE=$(html_escape "$G_TITLE")
+        G_ID=$(html_escape "$G_ID")
         echo "<tr style='border-bottom:1px solid var(--border-row);'><td style='padding:6px;'>$K_TITLE</td><td style='padding:6px;'>$G_TITLE</td><td style='padding:6px;'>$G_ID</td></tr>"
     done
     echo "</table>"
