@@ -333,7 +333,7 @@ body {
 <div class="nav">
   <button id="btnList" onclick="loadSeries()">My Series</button>
   <button id="btnCreate" onclick="loadCreate()">Create Series</button>
-
+  <button id="btnProgress" onclick="loadProgress()">Progress Tracking</button>
 </div>
 
 <div class="container">
@@ -570,6 +570,90 @@ function removeSeries(seriesId) {
       loadSeries();
     })
     .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function loadProgress() {
+  setActive('btnProgress');
+  setStatus('Loading...');
+  fetch('/cgi-bin/grpage.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function grSaveCreds() {
+  var email = document.getElementById('grEmail').value.trim();
+  var password = document.getElementById('grPassword').value;
+  var userId = document.getElementById('grUserId').value.trim();
+  var statusEl = document.getElementById('credsStatus');
+
+  if (!email || !password || !userId) {
+    statusEl.textContent = 'All fields are required';
+    return;
+  }
+
+  statusEl.textContent = 'Saving...';
+  fetch('/cgi-bin/gr_savecreds.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'email=' + encodeURIComponent(email)
+      + '&password=' + encodeURIComponent(password)
+      + '&user_id=' + encodeURIComponent(userId)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { statusEl.textContent = text; })
+    .catch(function(e) { statusEl.textContent = 'Error: ' + e; });
+}
+
+function grLogin() {
+  var el = document.getElementById('loginOutput');
+  el.style.display = 'block';
+  el.textContent = 'Signing in...';
+
+  fetch('/cgi-bin/gr_dologin.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: ''
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      el.textContent = text;
+      grRefreshStatus();
+    })
+    .catch(function(e) { el.textContent = 'Error: ' + e; });
+}
+
+function grBuildMapping() {
+  var el = document.getElementById('mappingOutput');
+  el.style.display = 'block';
+  el.textContent = 'Building mapping...';
+
+  fetch('/cgi-bin/gr_domapping.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: ''
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      el.textContent = text;
+      loadProgress();
+    })
+    .catch(function(e) { el.textContent = 'Error: ' + e; });
+}
+
+function grRefreshStatus() {
+  fetch('/cgi-bin/gr_status.cgi')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var logEl = document.getElementById('syncLog');
+      if (logEl && data.last_log) {
+        logEl.textContent = data.last_log;
+      }
+    })
+    .catch(function(e) { setStatus('Error refreshing status: ' + e); });
 }
 
 loadSeries();
