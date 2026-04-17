@@ -147,7 +147,7 @@ fi
 
 EXISTING=$(sqlite3 "$DB" "SELECT p_uuid FROM Entries WHERE p_cdeKey='$ESC_S_KEY' AND p_type='Entry:Item:Series';")
 SQL_FILE="/tmp/kindle_series_create_$$.sql"
-VC_COUNT=$((BOOK_COUNT + 1))
+VC_COUNT=$BOOK_COUNT
 
 if [ -n "$EXISTING" ]; then
     cat > "$SQL_FILE" << ENDSQL
@@ -159,6 +159,7 @@ UPDATE Entries SET
     p_creditCount=$CREDIT_COUNT,
     p_memberCount=$BOOK_COUNT,
     p_homeMemberCount=$BOOK_COUNT,
+    p_virtualCollectionCount=$VC_COUNT,
     p_thumbnail='$THUMBNAIL'
     WHERE p_cdeKey='$ESC_S_KEY' AND p_type='Entry:Item:Series';
 ENDSQL
