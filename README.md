@@ -7,7 +7,6 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 <img width="1073" height="755" alt="Screenshot 2026-04-17 055404" src="https://github.com/user-attachments/assets/b08981b2-8697-4567-b346-be7627ac1d6d" />
 
-
 ## Quick Start
 
 1. Copy the `kindle-series-manager` folder inside `kual-extension/` to your Kindle at `Internal Storage/extensions/kindle-series-manager/`
@@ -18,11 +17,12 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 <img width="1069" height="843" alt="Screenshot 2026-04-17 055426" src="https://github.com/user-attachments/assets/e573c6fb-ef1f-47ca-b429-c755c5631a91" />
 
-
+### Grouped Series
 Books will appear grouped in the Kindle library within a few seconds.
 
-<img width="3072" height="4080" alt="image" src="https://github.com/user-attachments/assets/4e2eebce-bf5d-4506-b43b-6c2fb6bc66e0" />
+<img height="800" alt="image" src="https://github.com/user-attachments/assets/4e2eebce-bf5d-4506-b43b-6c2fb6bc66e0" />
 
+### KU and PR Badges
 You can also control the appearance of the "Kindle Unlimited" and "Prime Reading" badges when creating or modifying a series.
 
 <img width="511" height="200" alt="Screenshot 2026-04-17 055525" src="https://github.com/user-attachments/assets/f430fe48-9e44-4cfd-a9d7-fd6c23e2caf9" />
