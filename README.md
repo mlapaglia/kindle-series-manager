@@ -92,6 +92,8 @@ Open KUAL and tap **Stop Web UI**. This kills the HTTP server and removes the fi
 
 The extension can automatically sync your reading progress to Goodreads whenever you open or close a book, or when the Kindle goes to sleep. This uses Goodreads' internal progress update endpoint to set your current page.
 
+<img width="929" height="1181" alt="image" src="https://github.com/user-attachments/assets/7b5f7f91-c4a1-40bc-8bcf-27ad48051f5f" />
+
 ### Setup
 
 1. Start the web UI and go to the **Progress Tracking** tab
