@@ -8,13 +8,8 @@
           "name": "Start Web UI",
           "priority": 0,
           "action": "bin/webapp.sh",
-          "exitmenu": true
-        },
-        {
-          "name": "Stop Web UI",
-          "priority": 1,
-          "action": "bin/stopweb.sh",
-          "exitmenu": true
+          "refresh": true,
+          "exitmenu": false
         },
         {
           "name": "Backup Database",
