@@ -38,20 +38,6 @@ The KUAL menu includes **Backup Database** and **Restore Database** actions:
 
 Run **Backup Database** before your first series operation. If anything goes wrong, tap **Restore Database** to revert.
 
-You can also back up manually over SSH:
-
-```bash
-scp root@<kindle-ip>:/var/local/cc.db ./cc.db.bak
-```
-
-And restore manually:
-
-```bash
-ssh root@<kindle-ip> "stop com.lab126.ccat"
-scp ./cc.db.bak root@<kindle-ip>:/var/local/cc.db
-ssh root@<kindle-ip> "start com.lab126.ccat"
-```
-
 ## Requirements
 
 - Jailbroken Kindle with KUAL installed
@@ -61,55 +47,6 @@ ssh root@<kindle-ip> "start com.lab126.ccat"
 ## How It Works
 
 The extension runs a lightweight HTTP server on the Kindle (a static busybox binary bundled with the extension). You access the web UI from your phone or PC browser. The web UI reads and modifies the Kindle's content catalogue database (`/var/local/cc.db`) through shell CGI scripts, creating the same database structures that Amazon uses for store-purchased series.
-
-### Web UI Features
-
-- **My Series** — view all series on the device with book lists; remove series with one tap
-- **Create Series** — two-panel interface: pick books from your library on the right, they appear in the reading order panel on the left. Drag to reorder. Optionally provide an Amazon series ASIN for better firmware integration
-### Architecture
-
-Series grouping in `cc.db` requires three things:
-
-1. **`Series` table rows** — each maps a book (`d_itemCdeKey`) to a series (`d_seriesId`) with a position
-2. **`Entry:Item:Series` row in `Entries`** — the series container with title, author, thumbnail, and metadata matching the format Amazon uses
-3. **`p_seriesState = 0` on member books** — flags them as series members so the firmware hides them from the main library and shows them inside the series
-
-The CGI scripts handle all of this, including a workaround for the ICU collation issue (the `Entries` table uses `COLLATE icu` which the standalone `sqlite3` CLI doesn't support — the scripts temporarily strip the collation from the schema, perform the INSERT, then restore it).
-
-## Installation
-
-### Copy files to Kindle
-
-Connect the Kindle via USB and copy the `kual-extension/` folder to:
-
-```
-Internal Storage/extensions/kindle-series-manager/
-```
-
-The folder should contain:
-
-```
-kindle-series-manager/
-  config.xml
-  menu.json
-  bin/
-    busybox-httpd      (static ARM binary, ~1MB)
-    webapp.sh
-    stopweb.sh
-    backup.sh
-    restore.sh
-  www/
-    index.html
-    cgi-bin/
-      series.cgi
-      books.cgi
-      create.cgi
-      remove.cgi
-```
-
-### Verify
-
-Open KUAL. You should see "Kindle Series Manager" with "Start Web UI", "Stop Web UI", "Backup Database", and "Restore Database" buttons.
 
 ## Usage
 
@@ -129,6 +66,11 @@ Open KUAL. You should see "Kindle Series Manager" with "Start Web UI", "Stop Web
 5. Drag books up/down to reorder; click X to remove
 6. Tap **Create Series**
 7. Wait a few seconds for `ccat` to restart, then check your Kindle library
+
+### Editing a series
+1. Tap **Edit** on the series in the web UI
+2. Change the ordering, remove/add books to the series.
+3. Tap **Save**
 
 ### Removing a series
 
@@ -166,32 +108,6 @@ scp cc.db root@<kindle-ip>:/var/local/cc.db
 ssh root@<kindle-ip> "start com.lab126.ccat"
 ```
 
-## Technical Details
-
-### Database location
-
-`/var/local/cc.db` — managed by the `com.lab126.ccat` service.
-
-### ICU collation workaround
-
-The `Entries` table has columns with `COLLATE icu` in their definition. The Kindle's standalone `sqlite3` CLI doesn't include the ICU extension, so any INSERT into `Entries` fails. The workaround:
-
-1. `PRAGMA writable_schema=ON` to temporarily strip `COLLATE icu` from the table definition
-2. Drop the ICU-dependent indexes
-3. Perform the INSERT (in a separate `sqlite3` session that reads the modified schema)
-4. Restore the original schema with `COLLATE icu`
-5. `ccat` rebuilds the indexes when it starts
-
-The Python CLI tool (`kindle_series.py`) avoids this by registering a stub collation: `conn.create_collation("icu", lambda a, b: (a > b) - (a < b))`
-
-### Series ID format
-
-Amazon uses `urn:collection:1:asin-{ASIN}` for series IDs. When no ASIN is provided, a synthetic key is generated: `SL-SERIES-NAME` (uppercase, spaces replaced with hyphens).
-
-### Firewall
-
-The Kindle's iptables policy is `DROP` by default. The `webapp.sh` script adds a rule to allow traffic on port 8080 when starting the server, and `stopweb.sh` removes it when stopping.
-
 ## Sources
 
 - [Kindle cc.db schema documentation](https://sighery.github.io/kindlewiki/kindle-hacking/cc.html)
@@ -199,9 +115,3 @@ The Kindle's iptables policy is `DROP` by default. The `webapp.sh` script adds a
 - [Rekreate](https://github.com/Sighery/rekreate)
 - [MobileRead: Group by series](https://www.mobileread.com/forums/showthread.php?p=4424834)
 - [Kindles Now Have "Group Series in Library" Option](https://blog.the-ebook-reader.com/2020/12/16/kindles-now-have-group-series-in-library-option-in-settings/)
-
-## Known Limitations
-
-- **KU/Prime badges:** Using a real Amazon ASIN causes Kindle Unlimited or Prime Reading logos to appear on the series if the series is in those programs. These badges are resolved at runtime by the firmware, not stored in the database.
-- **Cloud sync:** If cloud collections sync is enabled, Amazon's sync may overwrite manually created series data. Consider disabling WiFi after creating series if this is a concern.
-- **No Python on Kindle:** The Kindle doesn't ship with Python. The web UI uses pure shell scripts and the `sqlite3` CLI. The Python `kindle_series.py` tool is for PC-side use only.
