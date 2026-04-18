@@ -62,6 +62,22 @@ cat > "$EXT_DIR/menu.json" << EOF
           "priority": 4,
           "action": "bin/restore.sh",
           "exitmenu": true
+        },
+        {
+          "name": "Disable FBInk Screensaver",
+          "priority": 5,
+          "action": "bin/fbink_ss_toggle.sh disable",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/tmp/fbink_ss_daemon.pid\" -f"
+        },
+        {
+          "name": "Enable FBInk Screensaver",
+          "priority": 5,
+          "action": "bin/fbink_ss_toggle.sh enable",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/tmp/fbink_ss_daemon.pid\" -f !"
         }
       ]
     }

@@ -1,13 +1,13 @@
 ![Kindle Series Manager](assets/banner.png)
 # Kindle Series Manager
 
-[![Documentation](https://app.readthedocs.org/projects/kindle-series-manager-docs/badge/?version=latest)](https://kindle-series-manager-docs.readthedocs.io/en/latest/)
+[![Documentation](https://app.readthedocs.org/projects/kindle-series-manager/badge/?version=latest)](https://kindle-series-manager.readthedocs.io/en/latest/)
 
 Group sideloaded books into series on jailbroken Kindle devices, just like Amazon-purchased books.
 
 Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with store-purchased content. This KUAL extension lets you create, manage, and remove series groupings for sideloaded books through a web interface served from the Kindle itself.
 
-> **Full documentation is available at [kindle-series-manager-docs.readthedocs.io](https://kindle-series-manager-docs.readthedocs.io/en/latest/)**
+> **Full documentation is available at [kindle-series-manager.readthedocs.io](https://kindle-series-manager.readthedocs.io/en/latest/)**
 
 <img width="1203" height="707" alt="image" src="https://github.com/user-attachments/assets/2a53081a-7c32-48b0-b69e-4363ab8dc51a" />
 
@@ -15,7 +15,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 - **Series Management** — Create, edit, and remove series groupings for sideloaded books via a two-panel web UI with drag-and-drop reading order. Optionally attach Amazon ASINs and control KU/Prime Reading badge display.
 - **Goodreads Progress Sync** — Automatically sync reading progress to Goodreads when you open/close a book or the Kindle sleeps. Background daemon with auto-start on boot.
-- **Custom Screensavers** — Upload images with a crop editor; auto-resize, grayscale conversion, and proper PNG encoding for your Kindle's resolution. Manage active/disabled screensavers.
+- **Custom Screensavers** — Upload images with a crop editor; auto-resize, grayscale conversion, and proper PNG encoding for your Kindle's resolution. Manage active/disabled screensavers. Enable FBInk Screensaver mode in KUAL for safer rendering that won't freeze the device on malformed images.
 - **Database Backup/Restore** — One-tap backup and restore of the Kindle's `cc.db` via KUAL menu.
 - **Standalone CLI** — `kindle_series.py` for direct database manipulation on a PC (list, inspect, create, and remove series).
 
