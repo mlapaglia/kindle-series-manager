@@ -15,7 +15,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 - **Series Management** — Create, edit, and remove series groupings for sideloaded books via a two-panel web UI with drag-and-drop reading order. Optionally attach Amazon ASINs and control KU/Prime Reading badge display.
 - **Goodreads Progress Sync** — Automatically sync reading progress to Goodreads when you open/close a book or the Kindle sleeps. Background daemon with auto-start on boot.
-- **Custom Screensavers** — Upload images with a crop editor; auto-resize, grayscale conversion, and proper PNG encoding for your Kindle's resolution. Manage active/disabled screensavers.
+- **Custom Screensavers** — Upload images with a crop editor; auto-resize, grayscale conversion, and proper PNG encoding for your Kindle's resolution. Manage active/disabled screensavers. Enable FBInk Screensaver mode in KUAL for safer rendering that won't freeze the device on malformed images.
 - **Database Backup/Restore** — One-tap backup and restore of the Kindle's `cc.db` via KUAL menu.
 - **Standalone CLI** — `kindle_series.py` for direct database manipulation on a PC (list, inspect, create, and remove series).
 
