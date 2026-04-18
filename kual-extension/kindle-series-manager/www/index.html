@@ -743,12 +743,13 @@ function ssProcessFile(file) {
       }
       ctx.putImageData(imageData, 0, 0);
 
+      var pngDataUrl = canvas.toDataURL('image/png');
       previewEl.style.display = 'block';
       previewEl.innerHTML = '<div style="font-size:13px;color:var(--fg-muted);margin-bottom:4px;">Preview (' + targetW + 'x' + targetH + ', grayscale):</div>'
-        + '<img src="' + canvas.toDataURL('image/png') + '" style="max-width:200px;border-radius:4px;border:1px solid var(--border);">'
+        + '<img src="' + pngDataUrl + '" style="max-width:200px;border-radius:4px;border:1px solid var(--border);">'
         + '<br><button class="btn btn-primary" style="margin-top:8px;" onclick="ssUpload()">Upload Screensaver</button>';
 
-      window._ssUploadData = canvas.toDataURL('image/png').split(',')[1];
+      window._ssUploadData = pngDataUrl.split(',')[1];
       statusEl.textContent = 'Image processed: ' + img.width + 'x' + img.height + ' -> ' + targetW + 'x' + targetH + ' grayscale. Ready to upload.';
     };
     img.src = e.target.result;

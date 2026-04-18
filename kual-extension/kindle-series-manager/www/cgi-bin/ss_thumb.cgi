@@ -26,6 +26,9 @@ if [ ! -f "$FILE" ]; then
     exit 0
 fi
 
+FILE_SIZE=$(wc -c < "$FILE" | tr -d ' ')
 echo "Content-Type: image/png"
+echo "Content-Length: $FILE_SIZE"
+echo "Cache-Control: public, max-age=86400"
 echo ""
 cat "$FILE"
