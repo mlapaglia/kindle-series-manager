@@ -45,6 +45,7 @@ SLEEP_PID=$!
 lipc-wait-event -m com.lab126.powerd outOfScreenSaver >&3 2>/dev/null &
 WAKE_PID=$!
 
+# shellcheck disable=SC2064
 trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; start pillow 2>/dev/null; lipc-set-prop com.lab126.blanket load screensaver; log 'Daemon stopped, pillow and screensaver restored'; exit 0" INT TERM
 
 while read -r LINE <&3; do

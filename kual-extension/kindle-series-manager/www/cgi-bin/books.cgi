@@ -2,7 +2,7 @@
 echo "Content-Type: text/html"
 echo ""
 
-DB="/var/local/cc.db"
+DB="${DB:-/var/local/cc.db}"
 
 echo "<div>"
 

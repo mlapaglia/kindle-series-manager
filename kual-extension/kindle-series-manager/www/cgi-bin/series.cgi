@@ -2,7 +2,7 @@
 echo "Content-Type: text/html"
 echo ""
 
-DB="/var/local/cc.db"
+DB="${DB:-/var/local/cc.db}"
 
 SERIES_IDS=$(sqlite3 "$DB" "SELECT DISTINCT d_seriesId FROM Series ORDER BY d_seriesId;")
 

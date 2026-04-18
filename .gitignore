@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.env
+/cc.db
 goodreads/gr_creds.json
 goodreads/gr_cookies.txt
 goodreads/gr_session.txt
@@ -353,6 +354,8 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 **/__pycache__/
 *.pyc
+.venv/
+.pytest_cache/
 
 # Cake - Uncomment if you are using it
 #tools/**

@@ -2,7 +2,7 @@
 echo "Content-Type: application/json"
 echo ""
 
-DB="/var/local/cc.db"
+DB="${DB:-/var/local/cc.db}"
 
 SERIES_ID=$(echo "$QUERY_STRING" | sed 's/id=//;s/%3A/:/g;s/%2F/\//g;s/+/ /g')
 
