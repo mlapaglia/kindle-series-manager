@@ -131,6 +131,8 @@ When you enable Goodreads Sync via KUAL, the extension installs an upstart job (
 
 The **Screensavers** tab lets you upload, manage, and remove custom Kindle sleep screen images through the web UI.
 
+<img width="989" height="1177" alt="image" src="https://github.com/user-attachments/assets/b227f533-8dd7-4d6f-926f-6208b176d013" />
+
 ### How it works
 
 1. Go to the **Screensavers** tab in the web UI
