@@ -9,7 +9,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 > **Full documentation is available at [kindle-series-manager-docs.readthedocs.io](https://kindle-series-manager-docs.readthedocs.io/en/latest/)**
 
-<img width="1073" height="755" alt="Screenshot 2026-04-17 055404" src="https://github.com/user-attachments/assets/b08981b2-8697-4567-b346-be7627ac1d6d" />
+<img width="1203" height="707" alt="image" src="https://github.com/user-attachments/assets/2a53081a-7c32-48b0-b69e-4363ab8dc51a" />
 
 ## Features
 
@@ -27,7 +27,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 5. Open that URL on your phone or PC (same WiFi network)
 6. Tap **Create Series**, name it, select your books, drag them into reading order, and hit Create
 
-<img width="1069" height="843" alt="Screenshot 2026-04-17 055426" src="https://github.com/user-attachments/assets/e573c6fb-ef1f-47ca-b429-c755c5631a91" />
+<img width="834" height="838" alt="image" src="https://github.com/user-attachments/assets/021322b6-d6f0-4811-84fa-db8ed8475805" />
 
 ## Requirements
 
