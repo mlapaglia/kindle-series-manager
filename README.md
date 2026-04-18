@@ -53,6 +53,7 @@ The extension runs a lightweight HTTP server on the Kindle (a static busybox bin
 - **My Series** — view all series on the device with book lists; edit or remove series with one tap
 - **Create Series** — two-panel interface: pick books from your library on the right, they appear in the reading order panel on the left. Drag to reorder. Optionally provide an Amazon series ASIN for better firmware integration. Control program badge display (KU/Prime Reading)
 - **Progress Tracking** — configure Goodreads credentials, sign in, build book mappings, and monitor the sync service status and logs
+- **Screensavers** — upload custom sleep screen images with drag-and-drop, auto-resize, grayscale conversion, and a crop editor. Manage active and disabled screensavers
 
 ## Usage
 
@@ -125,6 +126,39 @@ When you enable Goodreads Sync via KUAL, the extension installs an upstart job (
 - If books don't match, make sure they're on your Goodreads "currently-reading" shelf with titles that closely match the Kindle book titles
 - Session cookies may expire — if syncs start failing, click **Sign In to Goodreads** again from the web UI
 - Log file location on the Kindle: `/mnt/base-us/extensions/kindle-series-manager/goodreads/gr_sync.log`
+
+## Custom Screensavers
+
+The **Screensavers** tab lets you upload, manage, and remove custom Kindle sleep screen images through the web UI.
+
+### How it works
+
+1. Go to the **Screensavers** tab in the web UI
+2. Your Kindle model and screen resolution are auto-detected from the device serial number
+3. Drag and drop (or click to select) any image — color photos work fine
+4. Use the crop editor to zoom and pan the image into position
+5. Click **Upload Screensaver** — the image is automatically:
+   - Resized to the exact device resolution
+   - Converted to grayscale using luminance weighting
+   - Encoded as a proper 8-bit grayscale PNG (color type 0) using [@lunapaint/png-codec](https://github.com/lunapaint/png-codec)
+   - Saved to `/usr/share/blanket/screensaver/` as `bg_ssNN.png`
+
+### Managing screensavers
+
+- **Disable** moves a screensaver from the active directory to `/mnt/us/screensaver_disabled/` so it won't show on the lock screen but can be restored later
+- **Enable** moves a disabled screensaver back to the active directory
+- **Delete** permanently removes the image
+
+### Supported models
+
+The tool auto-detects resolution from the Kindle serial number. Supported devices include all e-ink Kindles from Kindle 1 through Kindle Scribe Colorsoft (2025), covering resolutions from 600x800 to 1860x2480.
+
+### Important notes
+
+- **Disable "Show covers on lock screen"** in Kindle Settings > Screen & Brightness, otherwise custom screensavers won't appear
+- **Ads/Special Offers** must be removed first (paid removal or jailbreak ad-disable script)
+- Images must be 8-bit grayscale PNG at the device's exact resolution — the upload tool handles this conversion automatically, but uploading malformed images manually can cause the Kindle to freeze on sleep
+- Factory screensavers (`bg_ss00.png` through `bg_ss06.png`) can be disabled and re-enabled without deleting them
 
 ## Standalone CLI Tool
 
