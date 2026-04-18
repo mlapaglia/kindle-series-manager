@@ -3,10 +3,21 @@
 PIDFILE="/tmp/fbink_ss_daemon.pid"
 EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
 DAEMON="$EXT_DIR/bin/fbink_ss_daemon.sh"
+ACTION="$1"
 
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    kill "$(cat "$PIDFILE")" 2>/dev/null
-    rm -f "$PIDFILE"
-else
-    sh "$DAEMON" &
-fi
+stop_daemon() {
+    if [ -f "$PIDFILE" ]; then
+        kill "$(cat "$PIDFILE")" 2>/dev/null
+        rm -f "$PIDFILE"
+    fi
+}
+
+case "$ACTION" in
+    enable)
+        stop_daemon
+        sh "$DAEMON" &
+        ;;
+    disable)
+        stop_daemon
+        ;;
+esac
