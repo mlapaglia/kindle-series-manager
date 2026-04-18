@@ -29,8 +29,6 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 <img width="1069" height="843" alt="Screenshot 2026-04-17 055426" src="https://github.com/user-attachments/assets/e573c6fb-ef1f-47ca-b429-c755c5631a91" />
 
-<img height="800" alt="image" src="https://github.com/user-attachments/assets/4e2eebce-bf5d-4506-b43b-6c2fb6bc66e0" />
-
 ## Requirements
 
 - Jailbroken Kindle with KUAL installed
