@@ -334,6 +334,7 @@ body {
   <button id="btnList" onclick="loadSeries()">My Series</button>
   <button id="btnCreate" onclick="loadCreate()">Create Series</button>
   <button id="btnProgress" onclick="loadProgress()">Progress Tracking</button>
+  <button id="btnScreensavers" onclick="loadScreensavers()">Screensavers</button>
 </div>
 
 <div class="container">
@@ -652,6 +653,163 @@ function grBuildMapping() {
 
 function grRefreshStatus() {
   loadProgress();
+}
+
+function loadScreensavers() {
+  setActive('btnScreensavers');
+  setStatus('Loading...');
+  fetch('/cgi-bin/sspage.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+      ssSetupDropZone();
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function ssModelChanged(sel) {
+  var parts = sel.value.split('x');
+  var zone = document.getElementById('ssDropZone');
+  if (zone) {
+    zone.setAttribute('data-width', parts[0]);
+    zone.setAttribute('data-height', parts[1]);
+  }
+}
+
+function ssSetupDropZone() {
+  var zone = document.getElementById('ssDropZone');
+  var fileInput = document.getElementById('ssFileInput');
+  if (!zone || !fileInput) return;
+
+  zone.addEventListener('click', function() { fileInput.click(); });
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--accent)';
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.style.borderColor = 'var(--input-border)';
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--input-border)';
+    if (e.dataTransfer.files.length > 0) ssProcessFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length > 0) ssProcessFile(fileInput.files[0]);
+  });
+}
+
+function ssProcessFile(file) {
+  var statusEl = document.getElementById('ssUploadStatus');
+  var previewEl = document.getElementById('ssPreview');
+  var zone = document.getElementById('ssDropZone');
+  var targetW = parseInt(zone.getAttribute('data-width'));
+  var targetH = parseInt(zone.getAttribute('data-height'));
+
+  if (targetW === 0 || targetH === 0) {
+    statusEl.textContent = 'Select your device model first.';
+    return;
+  }
+
+  statusEl.textContent = 'Processing image...';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetW, targetH);
+
+      var scale = Math.max(targetW / img.width, targetH / img.height);
+      var sw = img.width * scale;
+      var sh = img.height * scale;
+      var sx = (targetW - sw) / 2;
+      var sy = (targetH - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh);
+
+      var imageData = ctx.getImageData(0, 0, targetW, targetH);
+      var d = imageData.data;
+      for (var i = 0; i < d.length; i += 4) {
+        var gray = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+        d[i] = gray;
+        d[i+1] = gray;
+        d[i+2] = gray;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      previewEl.style.display = 'block';
+      previewEl.innerHTML = '<div style="font-size:13px;color:var(--fg-muted);margin-bottom:4px;">Preview (' + targetW + 'x' + targetH + ', grayscale):</div>'
+        + '<img src="' + canvas.toDataURL('image/png') + '" style="max-width:200px;border-radius:4px;border:1px solid var(--border);">'
+        + '<br><button class="btn btn-primary" style="margin-top:8px;" onclick="ssUpload()">Upload Screensaver</button>';
+
+      window._ssUploadData = canvas.toDataURL('image/png').split(',')[1];
+      statusEl.textContent = 'Image processed: ' + img.width + 'x' + img.height + ' -> ' + targetW + 'x' + targetH + ' grayscale. Ready to upload.';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function ssUpload() {
+  if (!window._ssUploadData) return;
+  var statusEl = document.getElementById('ssUploadStatus');
+  statusEl.textContent = 'Uploading...';
+
+  fetch('/cgi-bin/ss_upload.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: window._ssUploadData
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      statusEl.textContent = text;
+      window._ssUploadData = null;
+      loadScreensavers();
+    })
+    .catch(function(e) { statusEl.textContent = 'Error: ' + e; });
+}
+
+function ssDisable(name) {
+  setStatus('Disabling...');
+  fetch('/cgi-bin/ss_disable.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadScreensavers(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function ssEnable(name) {
+  setStatus('Enabling...');
+  fetch('/cgi-bin/ss_enable.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadScreensavers(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function ssDelete(src, name) {
+  if (!confirm('Permanently delete ' + name + '?')) return;
+  setStatus('Deleting...');
+  fetch('/cgi-bin/ss_delete.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'src=' + encodeURIComponent(src) + '&name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadScreensavers(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
 }
 
 loadSeries();
