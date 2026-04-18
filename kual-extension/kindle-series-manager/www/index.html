@@ -321,6 +321,48 @@ body {
   pointer-events: none;
   text-decoration: line-through;
 }
+
+.upload-drop-zone {
+  border: 2px dashed var(--input-border);
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+.upload-drop-zone:hover { border-color: var(--accent); }
+.upload-drop-zone.drag-active {
+  border-color: var(--accent);
+  background: var(--surface-alt);
+}
+.upload-file-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-row);
+  font-size: 14px;
+  gap: 8px;
+}
+.upload-file-item:last-child { border-bottom: none; }
+.upload-file-item.uploading { background: var(--surface-alt); }
+.upload-file-status { flex-shrink: 0; width: 20px; text-align: center; font-size: 14px; }
+.upload-file-name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.upload-file-size { flex-shrink: 0; font-size: 12px; color: var(--fg-faint); }
+.upload-file-error {
+  flex-shrink: 0; font-size: 12px; color: var(--danger);
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.upload-file-remove {
+  cursor: pointer; color: var(--fg-fainter);
+  font-size: 18px; padding: 0 4px; line-height: 1;
+  transition: color 0.15s;
+}
+.upload-file-remove:hover { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -336,6 +378,7 @@ body {
   <button id="btnCreate" onclick="loadCreate()">Create Series</button>
   <button id="btnProgress" onclick="loadProgress()">Progress Tracking</button>
   <button id="btnScreensavers" onclick="loadScreensavers()">Screensavers</button>
+  <button id="btnUpload" onclick="loadUpload()">Upload Books</button>
 </div>
 
 <div class="container">
@@ -968,6 +1011,307 @@ function ssDelete(src, name) {
     .then(function(r) { return r.text(); })
     .then(function(text) { setStatus(text); loadScreensavers(); })
     .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+var uploadQueue = [];
+var uploadFolders = [];
+var _uploadInProgress = false;
+var ALLOWED_EXTENSIONS = ['azw3', 'azw', 'mobi', 'kfx', 'epub', 'pdf'];
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function loadUpload() {
+  if (_uploadInProgress) {
+    setActive('btnUpload');
+    renderUploadTab();
+    return;
+  }
+  setActive('btnUpload');
+  setStatus('');
+  uploadQueue = [];
+
+  fetch('/cgi-bin/books_browse.cgi')
+    .then(function(r) { return r.json(); })
+    .then(function(folders) {
+      uploadFolders = folders;
+      renderUploadTab();
+    })
+    .catch(function() {
+      uploadFolders = [];
+      renderUploadTab();
+    });
+}
+
+function renderUploadTab() {
+  var html = '<div class="card">'
+    + '<div class="card-header"><span class="card-title">Upload Books</span></div>'
+    + '<p style="font-size:14px;color:var(--fg-muted);margin:0 0 16px 0;">'
+    + 'Transfer ebook files wirelessly to your Kindle. Supported formats: AZW3, MOBI, KFX, EPUB, PDF</p>'
+    + '<div style="margin-bottom:16px;">'
+    + '<div class="panel-header">Destination folder</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+    + '<select id="uploadFolder" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:160px;">'
+    + '<option value="">documents/ (root)</option>';
+
+  for (var i = 0; i < uploadFolders.length; i++) {
+    html += '<option value="' + escapeHtml(uploadFolders[i]) + '">documents/' + escapeHtml(uploadFolders[i]) + '/</option>';
+  }
+
+  html += '</select>'
+    + '<span style="font-size:13px;color:var(--fg-faint);">or</span>'
+    + '<input id="uploadNewFolder" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:140px;" placeholder="New folder name">'
+    + '</div></div>'
+    + '<div id="uploadDropZone" class="upload-drop-zone">'
+    + '<div style="font-size:24px;opacity:0.3;margin-bottom:8px;">&#x1F4E4;</div>'
+    + '<div>Drop ebook files here or click to select</div>'
+    + '<div style="font-size:12px;color:var(--fg-fainter);margin-top:4px;">.azw3, .mobi, .kfx, .epub, .pdf</div>'
+    + '<input type="file" id="uploadFileInput" multiple accept=".azw3,.azw,.mobi,.kfx,.epub,.pdf" style="display:none">'
+    + '</div>'
+    + '<div id="uploadQueue"></div>'
+    + '<div id="uploadActions" style="display:none;margin-top:12px;align-items:center;gap:8px;">'
+    + '<button class="btn btn-primary" onclick="uploadAll()">Upload All</button>'
+    + '<button class="btn" onclick="uploadClear()">Clear</button>'
+    + '<span id="uploadSummary" style="font-size:13px;color:var(--fg-muted);margin-left:auto;"></span>'
+    + '</div>'
+    + '<div id="uploadResult" style="display:none;margin-top:12px;padding:12px;border-radius:6px;font-size:14px;"></div>'
+    + '</div>';
+
+  document.getElementById('content').innerHTML = html;
+  uploadSetupDropZone();
+  renderUploadQueue();
+}
+
+function uploadSetupDropZone() {
+  var zone = document.getElementById('uploadDropZone');
+  var fileInput = document.getElementById('uploadFileInput');
+  if (!zone || !fileInput) return;
+
+  zone.addEventListener('click', function(e) {
+    if (e.target === fileInput) return;
+    fileInput.click();
+  });
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.classList.add('drag-active');
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.classList.remove('drag-active');
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.classList.remove('drag-active');
+    uploadAddFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', function() {
+    uploadAddFiles(fileInput.files);
+    fileInput.value = '';
+  });
+}
+
+function uploadAddFiles(files) {
+  var rejected = [];
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (ALLOWED_EXTENSIONS.indexOf(ext) === -1) {
+      rejected.push(file.name);
+      continue;
+    }
+    var isDup = uploadQueue.some(function(item) {
+      return item.name === file.name && item.size === file.size;
+    });
+    if (isDup) continue;
+    uploadQueue.push({ file: file, name: file.name, size: file.size, status: 'pending', message: '' });
+  }
+  renderUploadQueue();
+  if (rejected.length > 0) {
+    setStatus('Skipped unsupported: ' + rejected.join(', ') + '. Convert with Calibre first.');
+  }
+}
+
+function uploadRemove(index) {
+  uploadQueue.splice(index, 1);
+  renderUploadQueue();
+}
+
+function uploadClear() {
+  uploadQueue = uploadQueue.filter(function(item) { return item.status === 'uploading'; });
+  renderUploadQueue();
+}
+
+function renderUploadQueue() {
+  var container = document.getElementById('uploadQueue');
+  var actionsEl = document.getElementById('uploadActions');
+  if (!container) return;
+
+  if (uploadQueue.length === 0) {
+    container.innerHTML = '';
+    if (actionsEl) actionsEl.style.display = 'none';
+    return;
+  }
+
+  if (actionsEl) actionsEl.style.display = 'flex';
+
+  var totalSize = 0;
+  var html = '<div style="margin-top:12px;border:1px solid var(--border);border-radius:6px;overflow:hidden;">';
+  for (var i = 0; i < uploadQueue.length; i++) {
+    var item = uploadQueue[i];
+    totalSize += item.size;
+    var statusIcon = '', statusClass = '';
+    switch (item.status) {
+      case 'pending': statusIcon = '&#x23F3;'; break;
+      case 'uploading': statusIcon = '&#x1F504;'; statusClass = ' uploading'; break;
+      case 'done': statusIcon = '&#x2705;'; break;
+      case 'error': statusIcon = '&#x274C;'; break;
+    }
+    html += '<div class="upload-file-item' + statusClass + '">'
+      + '<span class="upload-file-status">' + statusIcon + '</span>'
+      + '<span class="upload-file-name">' + escapeHtml(item.name) + '</span>'
+      + '<span class="upload-file-size">' + formatSize(item.size) + '</span>';
+    if (item.status === 'error' && item.message) {
+      html += '<span class="upload-file-error" title="' + escapeHtml(item.message) + '">' + escapeHtml(item.message) + '</span>';
+    }
+    if (item.status === 'pending') {
+      html += '<span class="upload-file-remove" onclick="uploadRemove(' + i + ')">&times;</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+
+  var summaryEl = document.getElementById('uploadSummary');
+  if (summaryEl) {
+    var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
+    summaryEl.textContent = uploadQueue.length + ' file' + (uploadQueue.length !== 1 ? 's' : '')
+      + ' (' + formatSize(totalSize) + ')'
+      + (doneCount > 0 ? ' \u2014 ' + doneCount + ' uploaded' : '');
+  }
+}
+
+function getUploadSubfolder() {
+  var newFolder = document.getElementById('uploadNewFolder');
+  if (newFolder && newFolder.value.trim()) return newFolder.value.trim();
+  var select = document.getElementById('uploadFolder');
+  return select ? select.value : '';
+}
+
+function uploadAll() {
+  if (_uploadInProgress) return;
+  _uploadInProgress = true;
+
+  var pending = uploadQueue.filter(function(item) { return item.status === 'pending'; });
+  if (pending.length === 0) { _uploadInProgress = false; return; }
+
+  var subfolder = getUploadSubfolder();
+  setStatus('Uploading ' + pending.length + ' file' + (pending.length !== 1 ? 's' : '') + '...');
+
+  var btn = document.querySelector('#uploadActions .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+
+  uploadNext(0, subfolder);
+}
+
+function uploadNext(index, subfolder) {
+  while (index < uploadQueue.length && uploadQueue[index].status !== 'pending') {
+    index++;
+  }
+  if (index >= uploadQueue.length) {
+    _uploadInProgress = false;
+    var btn = document.querySelector('#uploadActions .btn-primary');
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload All'; }
+
+    var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
+    var errCount = uploadQueue.filter(function(it) { return it.status === 'error'; }).length;
+
+    if (doneCount > 0) {
+      setStatus('Uploaded ' + doneCount + ' file' + (doneCount !== 1 ? 's' : '')
+        + (errCount > 0 ? ' (' + errCount + ' failed)' : '') + '. Refreshing library...');
+      uploadRefreshLibrary();
+    } else {
+      setStatus('Upload failed for all files.');
+    }
+    return;
+  }
+
+  var item = uploadQueue[index];
+  item.status = 'uploading';
+  renderUploadQueue();
+
+  var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
+  var total = uploadQueue.filter(function(it) { return it.status !== 'error'; }).length;
+  setStatus('Uploading ' + (doneCount + 1) + ' of ' + total + ': ' + item.name);
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var url = '/cgi-bin/upload_book.cgi?filename=' + encodeURIComponent(item.name)
+      + '&subfolder=' + encodeURIComponent(subfolder);
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: e.target.result
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'ok') {
+          item.status = 'done';
+          item.message = data.filename;
+        } else {
+          item.status = 'error';
+          item.message = data.message || 'Unknown error';
+        }
+        renderUploadQueue();
+        uploadNext(index + 1, subfolder);
+      })
+      .catch(function(err) {
+        item.status = 'error';
+        item.message = err.toString();
+        renderUploadQueue();
+        uploadNext(index + 1, subfolder);
+      });
+  };
+  reader.onerror = function() {
+    item.status = 'error';
+    item.message = 'Failed to read file';
+    renderUploadQueue();
+    uploadNext(index + 1, subfolder);
+  };
+  reader.readAsArrayBuffer(item.file);
+}
+
+function uploadRefreshLibrary() {
+  fetch('/cgi-bin/refresh_library.cgi', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var resultEl = document.getElementById('uploadResult');
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
+      if (data.status === 'ok') {
+        resultEl.style.background = 'var(--surface-alt)';
+        resultEl.style.border = '1px solid var(--border)';
+        resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
+          + ' uploaded. Library refreshed \u2014 books should appear on your Kindle shortly.';
+        setStatus('');
+      } else {
+        resultEl.style.background = 'var(--danger-bg)';
+        resultEl.style.border = '1px solid var(--danger-border)';
+        resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
+          + ' uploaded, but library refresh failed: ' + (data.message || 'unknown error')
+          + '. Restart your Kindle to see new books.';
+        setStatus('');
+      }
+    })
+    .catch(function(e) {
+      setStatus('Files uploaded but library refresh failed: ' + e + '. Restart the Kindle to see new books.');
+    });
 }
 
 loadSeries();
