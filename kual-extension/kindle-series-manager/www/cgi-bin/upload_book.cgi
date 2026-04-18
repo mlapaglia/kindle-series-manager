@@ -3,7 +3,7 @@ echo "Content-Type: application/json"
 echo ""
 
 DOC_DIR="/mnt/us/documents"
-MAX_SIZE=67000000
+MAX_SIZE=52428800
 
 json_escape() {
     echo "$1" | sed 's/\\/\\\\/g;s/"/\\"/g'
@@ -73,17 +73,25 @@ fi
 
 if [ -n "$SUBFOLDER" ]; then
     TARGET_DIR="$DOC_DIR/$SUBFOLDER"
-    mkdir -p "$TARGET_DIR"
+    if ! mkdir -p "$TARGET_DIR" 2>/dev/null; then
+        json_error "Failed to create destination folder"
+    fi
 else
     TARGET_DIR="$DOC_DIR"
 fi
 
-TMPFILE="/tmp/book_upload_$$.tmp"
-head -c "$CONTENT_LENGTH" | base64 -d > "$TMPFILE" 2>/dev/null
+TMPFILE=$(mktemp /tmp/book_upload_XXXXXX) || json_error "Failed to create temp file"
+trap 'rm -f "$TMPFILE"' EXIT
+
+head -c "$CONTENT_LENGTH" > "$TMPFILE" 2>/dev/null
 
 if [ ! -s "$TMPFILE" ]; then
-    rm -f "$TMPFILE"
-    json_error "Failed to decode file data"
+    json_error "Failed to read file data"
+fi
+
+FILE_SIZE=$(wc -c < "$TMPFILE" | tr -d ' ')
+if [ "$FILE_SIZE" -gt "$MAX_SIZE" ] 2>/dev/null; then
+    json_error "File too large (max 50MB)"
 fi
 
 TARGET="$TARGET_DIR/$FILENAME"
@@ -97,8 +105,9 @@ if [ -f "$TARGET" ]; then
     TARGET="$TARGET_DIR/$FILENAME"
 fi
 
-cp "$TMPFILE" "$TARGET"
-rm -f "$TMPFILE"
+if ! cp "$TMPFILE" "$TARGET" 2>/dev/null; then
+    json_error "Failed to save file"
+fi
 
 if [ -f "$TARGET" ]; then
     FSIZE=$(wc -c < "$TARGET" | tr -d ' ')

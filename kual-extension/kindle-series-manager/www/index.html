@@ -1029,6 +1029,11 @@ function formatSize(bytes) {
 }
 
 function loadUpload() {
+  if (_uploadInProgress) {
+    setActive('btnUpload');
+    renderUploadTab();
+    return;
+  }
   setActive('btnUpload');
   setStatus('');
   uploadQueue = [];
@@ -1246,13 +1251,12 @@ function uploadNext(index, subfolder) {
 
   var reader = new FileReader();
   reader.onload = function(e) {
-    var base64 = e.target.result.split(',')[1];
     var url = '/cgi-bin/upload_book.cgi?filename=' + encodeURIComponent(item.name)
       + '&subfolder=' + encodeURIComponent(subfolder);
     fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: base64
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: e.target.result
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -1279,23 +1283,31 @@ function uploadNext(index, subfolder) {
     renderUploadQueue();
     uploadNext(index + 1, subfolder);
   };
-  reader.readAsDataURL(item.file);
+  reader.readAsArrayBuffer(item.file);
 }
 
 function uploadRefreshLibrary() {
   fetch('/cgi-bin/refresh_library.cgi', { method: 'POST' })
     .then(function(r) { return r.json(); })
-    .then(function() {
+    .then(function(data) {
       var resultEl = document.getElementById('uploadResult');
-      if (resultEl) {
-        resultEl.style.display = 'block';
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
+      if (data.status === 'ok') {
         resultEl.style.background = 'var(--surface-alt)';
         resultEl.style.border = '1px solid var(--border)';
-        var doneCount = uploadQueue.filter(function(it) { return it.status === 'done'; }).length;
         resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
           + ' uploaded. Library refreshed \u2014 books should appear on your Kindle shortly.';
+        setStatus('');
+      } else {
+        resultEl.style.background = 'var(--danger-bg)';
+        resultEl.style.border = '1px solid var(--danger-border)';
+        resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
+          + ' uploaded, but library refresh failed: ' + (data.message || 'unknown error')
+          + '. Restart your Kindle to see new books.';
+        setStatus('');
       }
-      setStatus('');
     })
     .catch(function(e) {
       setStatus('Files uploaded but library refresh failed: ' + e + '. Restart the Kindle to see new books.');
