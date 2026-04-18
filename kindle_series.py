@@ -28,7 +28,7 @@ import uuid
 from pathlib import Path
 
 
-DB_PATH = Path(__file__).parent / "cc.db"
+DB_PATH = Path(__file__).parent / "tests" / "cc.db"
 
 
 def get_db(path=None):

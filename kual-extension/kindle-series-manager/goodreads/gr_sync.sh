@@ -210,6 +210,7 @@ APPMGR_PID=$!
 lipc-wait-event -m com.lab126.powerd goingToScreenSaver >&3 2>/dev/null &
 POWERD_PID=$!
 
+# shellcheck disable=SC2064
 trap "kill $APPMGR_PID $POWERD_PID 2>/dev/null; exec 3>&-; exec 3<&-; rm -f \"$FIFO\"; exit 0" INT TERM
 
 while read -r LINE <&3; do

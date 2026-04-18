@@ -2,7 +2,7 @@
 echo "Content-Type: text/plain"
 echo ""
 
-DB="/var/local/cc.db"
+DB="${DB:-/var/local/cc.db}"
 LOG="/mnt/base-us/extensions/kindle-series-manager/series.log"
 
 logit() {

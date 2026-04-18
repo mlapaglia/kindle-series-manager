@@ -1,0 +1,20 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: All Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+
+      - name: Build test container
+        run: docker build -f Dockerfile.test -t ksm-test .
+
+      - name: Run all tests
+        run: docker run --rm ksm-test bash run_tests.sh
