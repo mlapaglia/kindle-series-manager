@@ -1,13 +1,13 @@
 ![Kindle Series Manager](assets/banner.png)
 # Kindle Series Manager
 
-[![Documentation](https://app.readthedocs.org/projects/kindle-series-manager-docs/badge/?version=latest)](https://kindle-series-manager-docs.readthedocs.io/en/latest/)
+[![Documentation](https://app.readthedocs.org/projects/kindle-series-manager/badge/?version=latest)](https://kindle-series-manager.readthedocs.io/en/latest/)
 
 Group sideloaded books into series on jailbroken Kindle devices, just like Amazon-purchased books.
 
 Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with store-purchased content. This KUAL extension lets you create, manage, and remove series groupings for sideloaded books through a web interface served from the Kindle itself.
 
-> **Full documentation is available at [kindle-series-manager-docs.readthedocs.io](https://kindle-series-manager-docs.readthedocs.io/en/latest/)**
+> **Full documentation is available at [kindle-series-manager.readthedocs.io](https://kindle-series-manager.readthedocs.io/en/latest/)**
 
 <img width="1203" height="707" alt="image" src="https://github.com/user-attachments/assets/2a53081a-7c32-48b0-b69e-4363ab8dc51a" />
 
