@@ -82,6 +82,8 @@ echo "<div id='ssUploadStatus' style='margin-top:8px;font-size:13px;color:var(--
 echo "<div id='ssPreview' style='margin-top:8px;display:none;'></div>"
 echo "</div>"
 
+CACHE_BUST=$(date +%s)
+
 echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Active Screensavers</span></div>"
 echo "<div id='ssActiveGrid' style='display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;'>"
@@ -91,7 +93,7 @@ if [ -d "$SS_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/ss_thumb.cgi?src=active&name=$SAFE_FNAME' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/ss_thumb.cgi?src=active&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssDisable('$SAFE_FNAME')\">Disable</button>"
@@ -118,7 +120,7 @@ if [ -d "$DISABLED_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssEnable('$SAFE_FNAME')\">Enable</button>"

@@ -3,6 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kindle Series Manager</title>
+<script src="png-codec.js"></script>
 <style>
 * { box-sizing: border-box; }
 :root {
@@ -700,6 +701,8 @@ function ssSetupDropZone() {
   });
 }
 
+var _ssEditor = null;
+
 function ssProcessFile(file) {
   var statusEl = document.getElementById('ssUploadStatus');
   var previewEl = document.getElementById('ssPreview');
@@ -712,49 +715,203 @@ function ssProcessFile(file) {
     return;
   }
 
-  statusEl.textContent = 'Processing image...';
+  statusEl.textContent = 'Loading image...';
 
   var reader = new FileReader();
   reader.onload = function(e) {
     var img = new Image();
     img.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH;
-      var ctx = canvas.getContext('2d');
+      var fitScale = Math.max(targetW / img.width, targetH / img.height);
+      _ssEditor = {
+        img: img, targetW: targetW, targetH: targetH,
+        zoom: 1, panX: 0, panY: 0, fitScale: fitScale,
+        dragging: false, dragStartX: 0, dragStartY: 0, dragPanX: 0, dragPanY: 0
+      };
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, targetW, targetH);
+      var editorSize = 300;
+      var displayScale = editorSize / Math.max(targetW, targetH);
+      var cw = Math.round(targetW * displayScale);
+      var ch = Math.round(targetH * displayScale);
 
-      var scale = Math.max(targetW / img.width, targetH / img.height);
-      var sw = img.width * scale;
-      var sh = img.height * scale;
-      var sx = (targetW - sw) / 2;
-      var sy = (targetH - sh) / 2;
-      ctx.drawImage(img, sx, sy, sw, sh);
-
-      var imageData = ctx.getImageData(0, 0, targetW, targetH);
-      var d = imageData.data;
-      for (var i = 0; i < d.length; i += 4) {
-        var gray = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
-        d[i] = gray;
-        d[i+1] = gray;
-        d[i+2] = gray;
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      var pngDataUrl = canvas.toDataURL('image/png');
       previewEl.style.display = 'block';
-      previewEl.innerHTML = '<div style="font-size:13px;color:var(--fg-muted);margin-bottom:4px;">Preview (' + targetW + 'x' + targetH + ', grayscale):</div>'
-        + '<img src="' + pngDataUrl + '" style="max-width:200px;border-radius:4px;border:1px solid var(--border);">'
-        + '<br><button class="btn btn-primary" style="margin-top:8px;" onclick="ssUpload()">Upload Screensaver</button>';
+      previewEl.innerHTML =
+        '<div style="font-size:13px;color:var(--fg-muted);margin-bottom:8px;">Adjust crop (' + targetW + 'x' + targetH + ')</div>'
+        + '<canvas id="ssEditorCanvas" width="' + cw + '" height="' + ch + '" style="border:1px solid var(--border);border-radius:4px;cursor:grab;display:block;"></canvas>'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">'
+        + '<span style="font-size:12px;color:var(--fg-muted);">Zoom</span>'
+        + '<input id="ssZoomSlider" type="range" min="100" max="500" value="100" style="flex:1;" oninput="ssEditorZoom(this.value)">'
+        + '<span id="ssZoomLabel" style="font-size:12px;color:var(--fg-muted);min-width:36px;">100%</span>'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:8px;">'
+        + '<button class="btn" style="font-size:12px;padding:4px 12px;" onclick="ssEditorCenter()">Center</button>'
+        + '<button class="btn" style="font-size:12px;padding:4px 12px;" onclick="ssEditorReset()">Reset</button>'
+        + '<button class="btn btn-primary" style="font-size:12px;padding:4px 12px;margin-left:auto;" onclick="ssEditorConfirm()">Upload Screensaver</button>'
+        + '</div>';
 
-      window._ssUploadData = pngDataUrl.split(',')[1];
-      statusEl.textContent = 'Image processed: ' + img.width + 'x' + img.height + ' -> ' + targetW + 'x' + targetH + ' grayscale. Ready to upload.';
+      var c = document.getElementById('ssEditorCanvas');
+      c.addEventListener('mousedown', ssEditorMouseDown);
+      c.addEventListener('mousemove', ssEditorMouseMove);
+      c.addEventListener('mouseup', ssEditorMouseUp);
+      c.addEventListener('mouseleave', ssEditorMouseUp);
+      c.addEventListener('touchstart', ssEditorTouchStart, {passive: false});
+      c.addEventListener('touchmove', ssEditorTouchMove, {passive: false});
+      c.addEventListener('touchend', ssEditorMouseUp);
+
+      ssEditorDraw();
+      statusEl.textContent = 'Drag to pan, use slider to zoom.';
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+function ssEditorDraw() {
+  if (!_ssEditor) return;
+  var e = _ssEditor;
+  var c = document.getElementById('ssEditorCanvas');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  var dw = c.width, dh = c.height;
+
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, dw, dh);
+
+  var displayScale = dw / e.targetW;
+  var s = e.fitScale * e.zoom;
+  var iw = e.img.width * s * displayScale;
+  var ih = e.img.height * s * displayScale;
+  var ix = (dw - iw) / 2 + e.panX * displayScale;
+  var iy = (dh - ih) / 2 + e.panY * displayScale;
+
+  ctx.drawImage(e.img, ix, iy, iw, ih);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  for (var i = 1; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(dw * i / 3, 0);
+    ctx.lineTo(dw * i / 3, dh);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, dh * i / 3);
+    ctx.lineTo(dw, dh * i / 3);
+    ctx.stroke();
+  }
+}
+
+function ssEditorZoom(val) {
+  if (!_ssEditor) return;
+  _ssEditor.zoom = parseInt(val) / 100;
+  document.getElementById('ssZoomLabel').textContent = val + '%';
+  ssEditorDraw();
+}
+
+function ssEditorCenter() {
+  if (!_ssEditor) return;
+  _ssEditor.panX = 0;
+  _ssEditor.panY = 0;
+  ssEditorDraw();
+}
+
+function ssEditorReset() {
+  if (!_ssEditor) return;
+  _ssEditor.zoom = 1;
+  _ssEditor.panX = 0;
+  _ssEditor.panY = 0;
+  document.getElementById('ssZoomSlider').value = 100;
+  document.getElementById('ssZoomLabel').textContent = '100%';
+  ssEditorDraw();
+}
+
+function ssEditorMouseDown(ev) {
+  if (!_ssEditor) return;
+  _ssEditor.dragging = true;
+  _ssEditor.dragStartX = ev.clientX;
+  _ssEditor.dragStartY = ev.clientY;
+  _ssEditor.dragPanX = _ssEditor.panX;
+  _ssEditor.dragPanY = _ssEditor.panY;
+  ev.target.style.cursor = 'grabbing';
+}
+
+function ssEditorMouseMove(ev) {
+  if (!_ssEditor || !_ssEditor.dragging) return;
+  var c = document.getElementById('ssEditorCanvas');
+  var displayScale = c.width / _ssEditor.targetW;
+  _ssEditor.panX = _ssEditor.dragPanX + (ev.clientX - _ssEditor.dragStartX) / displayScale;
+  _ssEditor.panY = _ssEditor.dragPanY + (ev.clientY - _ssEditor.dragStartY) / displayScale;
+  ssEditorDraw();
+}
+
+function ssEditorMouseUp(ev) {
+  if (!_ssEditor) return;
+  _ssEditor.dragging = false;
+  if (ev.target) ev.target.style.cursor = 'grab';
+}
+
+function ssEditorTouchStart(ev) {
+  if (!_ssEditor || ev.touches.length !== 1) return;
+  ev.preventDefault();
+  var t = ev.touches[0];
+  _ssEditor.dragging = true;
+  _ssEditor.dragStartX = t.clientX;
+  _ssEditor.dragStartY = t.clientY;
+  _ssEditor.dragPanX = _ssEditor.panX;
+  _ssEditor.dragPanY = _ssEditor.panY;
+}
+
+function ssEditorTouchMove(ev) {
+  if (!_ssEditor || !_ssEditor.dragging || ev.touches.length !== 1) return;
+  ev.preventDefault();
+  var t = ev.touches[0];
+  var c = document.getElementById('ssEditorCanvas');
+  var displayScale = c.width / _ssEditor.targetW;
+  _ssEditor.panX = _ssEditor.dragPanX + (t.clientX - _ssEditor.dragStartX) / displayScale;
+  _ssEditor.panY = _ssEditor.dragPanY + (t.clientY - _ssEditor.dragStartY) / displayScale;
+  ssEditorDraw();
+}
+
+function ssEditorConfirm() {
+  if (!_ssEditor) return;
+  var e = _ssEditor;
+  var statusEl = document.getElementById('ssUploadStatus');
+  statusEl.textContent = 'Processing...';
+
+  var canvas = document.createElement('canvas');
+  canvas.width = e.targetW;
+  canvas.height = e.targetH;
+  var ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, e.targetW, e.targetH);
+
+  var s = e.fitScale * e.zoom;
+  var iw = e.img.width * s;
+  var ih = e.img.height * s;
+  var ix = (e.targetW - iw) / 2 + e.panX;
+  var iy = (e.targetH - ih) / 2 + e.panY;
+  ctx.drawImage(e.img, ix, iy, iw, ih);
+
+  var imageData = ctx.getImageData(0, 0, e.targetW, e.targetH);
+  var d = imageData.data;
+  for (var i = 0; i < d.length; i += 4) {
+    var gray = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+    d[i] = gray; d[i+1] = gray; d[i+2] = gray; d[i+3] = 255;
+  }
+
+  statusEl.textContent = 'Encoding 8-bit grayscale PNG...';
+  PngCodec.encodePng({ data: imageData.data, width: e.targetW, height: e.targetH }, {
+    colorType: 0,
+    bitDepth: 8
+  }).then(function(result) {
+    var bin = '';
+    var bytes = result.data;
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    window._ssUploadData = btoa(bin);
+    statusEl.textContent = 'Encoded (' + Math.round(bytes.length / 1024) + 'KB). Uploading...';
+    ssUpload();
+  }).catch(function(err) {
+    statusEl.textContent = 'Encode error: ' + err;
+  });
 }
 
 function ssUpload() {
