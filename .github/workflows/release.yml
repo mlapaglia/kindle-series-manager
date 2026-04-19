@@ -13,10 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build ss_shield
+        run: bash tools/ss_shield/build.sh
+
       - name: Create zip archive
         run: |
           zip -r kindle-series-manager-${{ github.event.release.tag_name }}.zip . \
-            -x '.git/*' '.github/*'
+            -x '.git/*' '.github/*' '.venv/*' '.pytest_cache/*' \
+            'tests/*' 'tools/*' 'Dockerfile.test' 'run_tests.sh' \
+            'pyproject.toml' '__pycache__/*' '*.pyc'
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2

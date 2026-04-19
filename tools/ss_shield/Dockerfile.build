@@ -1,0 +1,24 @@
+FROM debian:bookworm
+
+RUN dpkg --add-architecture armel && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc-arm-linux-gnueabi \
+        libc6-dev-armel-cross \
+        libx11-dev:armel \
+        libxcb1-dev:armel \
+        libxau-dev:armel \
+        libxdmcp-dev:armel \
+        && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY ss_shield.c .
+
+RUN arm-linux-gnueabi-gcc -O2 -Wall -static \
+        -march=armv6 -mfloat-abi=soft \
+        -o ss_shield ss_shield.c \
+        -L/usr/lib/arm-linux-gnueabi \
+        -lX11 -lxcb -lXau -lXdmcp \
+        -lpthread -ldl \
+    && arm-linux-gnueabi-strip ss_shield \
+    && ls -la ss_shield
