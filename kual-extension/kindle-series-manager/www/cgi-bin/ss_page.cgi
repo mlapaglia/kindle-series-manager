@@ -107,7 +107,7 @@ if [ -d "$SS_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/screensaver/ss_thumb.cgi?src=active&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/ss_thumb.cgi?src=active&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssDisable('$SAFE_FNAME')\">Disable</button>"
@@ -134,7 +134,7 @@ if [ -d "$DISABLED_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/screensaver/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssEnable('$SAFE_FNAME')\">Enable</button>"
