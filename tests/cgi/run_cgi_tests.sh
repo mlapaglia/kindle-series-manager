@@ -120,31 +120,31 @@ STUBSQL
     chmod +x "$TEST_DIR/bin/"*
 }
 
-echo "--- series/series.cgi ---"
-OUTPUT=$(DB="$TEST_DB" sh "$CGI_DIR/series/series.cgi" 2>/dev/null)
+echo "--- series.cgi ---"
+OUTPUT=$(DB="$TEST_DB" sh "$CGI_DIR/series.cgi" 2>/dev/null)
 assert_contains "$OUTPUT" "Content-Type" "returns HTTP header"
 assert_contains "$OUTPUT" "text/html" "returns HTML content type"
 
 echo ""
-echo "--- series/books.cgi ---"
-OUTPUT=$(DB="$TEST_DB" sh "$CGI_DIR/series/books.cgi" 2>/dev/null)
+echo "--- books.cgi ---"
+OUTPUT=$(DB="$TEST_DB" sh "$CGI_DIR/books.cgi" 2>/dev/null)
 assert_contains "$OUTPUT" "Dungeon Crawler Carl" "lists books from database"
 assert_contains "$OUTPUT" "B08BKGYQXW" "includes cdeKey in output"
 
 echo ""
-echo "--- series/seriesdata.cgi ---"
+echo "--- seriesdata.cgi ---"
 sqlite3 "$TEST_DB" "INSERT INTO Series (d_seriesId, d_itemCdeKey, d_itemPosition, d_itemPositionLabel, d_itemType, d_seriesOrderType) VALUES ('urn:collection:1:asin-SL-DCC', 'B08BKGYQXW', 0.0, '1', 'Entry:Item', 'ordered');"
 sqlite3 "$TEST_DB" "INSERT INTO Series (d_seriesId, d_itemCdeKey, d_itemPosition, d_itemPositionLabel, d_itemType, d_seriesOrderType) VALUES ('urn:collection:1:asin-SL-DCC', 'B08PBCD9Y7', 1.0, '2', 'Entry:Item', 'ordered');"
 sqlite3 "$TEST_DB" "INSERT INTO Entries (p_uuid, p_type, p_cdeKey, p_cdeType, p_titles_0_nominal, p_memberCount) VALUES ('uuid-series', 'Entry:Item:Series', 'SL-DCC', 'series', 'DCC', 2);"
 
-OUTPUT=$(DB="$TEST_DB" QUERY_STRING="id=urn%3Acollection%3A1%3Aasin-SL-DCC" sh "$CGI_DIR/series/seriesdata.cgi" 2>/dev/null)
+OUTPUT=$(DB="$TEST_DB" QUERY_STRING="id=urn%3Acollection%3A1%3Aasin-SL-DCC" sh "$CGI_DIR/seriesdata.cgi" 2>/dev/null)
 assert_contains "$OUTPUT" "application/json" "returns JSON content type"
 assert_contains "$OUTPUT" "DCC" "returns series name"
 assert_contains "$OUTPUT" "B08BKGYQXW" "includes member books"
 
 echo ""
-echo "--- upload/books_browse.cgi ---"
-OUTPUT=$(sh "$CGI_DIR/upload/books_browse.cgi" 2>/dev/null)
+echo "--- books_browse.cgi ---"
+OUTPUT=$(sh "$CGI_DIR/books_browse.cgi" 2>/dev/null)
 assert_contains "$OUTPUT" "application/json" "returns JSON content type"
 assert_contains "$OUTPUT" "\[" "returns JSON array"
 
