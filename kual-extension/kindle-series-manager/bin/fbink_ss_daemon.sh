@@ -1,8 +1,11 @@
 #!/bin/sh
 
 FBINK="/mnt/us/libkh/bin/fbink"
+EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+SS_SHIELD="$EXT_DIR/bin/ss_shield"
 PIDFILE="/tmp/fbink_ss_daemon.pid"
-LOG="/mnt/base-us/extensions/kindle-series-manager/fbink_ss.log"
+SHIELD_PIDFILE="/tmp/ss_shield.pid"
+LOG="$EXT_DIR/fbink_ss.log"
 SS_DIR="/usr/share/blanket/screensaver"
 STATE_FILE="/tmp/fbink_ss_last"
 
@@ -10,8 +13,26 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG"
 }
 
+shield_up() {
+    DISPLAY=:0 "$SS_SHIELD" >> "$LOG" 2>&1 &
+    echo $! > "$SHIELD_PIDFILE"
+    log "Shield window up (PID $!)"
+}
+
+shield_down() {
+    if [ -f "$SHIELD_PIDFILE" ]; then
+        kill "$(cat "$SHIELD_PIDFILE")" 2>/dev/null
+        rm -f "$SHIELD_PIDFILE"
+        log "Shield window down"
+    fi
+}
+
 echo $$ > "$PIDFILE"
 log "=== FBInk screensaver daemon started (PID $$) ==="
+
+chmod +x "$SS_SHIELD" 2>/dev/null
+lipc-set-prop com.lab126.blanket unload screensaver
+log "Unloaded screensaver module"
 
 draw_screensaver() {
     IMAGES=$(ls "$SS_DIR"/bg_ss*.png 2>/dev/null)
@@ -31,9 +52,6 @@ draw_screensaver() {
     $FBINK -g file=$IMG -f
 }
 
-lipc-set-prop com.lab126.blanket unload screensaver
-log "Unloaded screensaver module"
-
 FIFO="/tmp/fbink_ss_events.fifo"
 rm -f "$FIFO"
 mkfifo "$FIFO"
@@ -46,21 +64,22 @@ lipc-wait-event -m com.lab126.powerd outOfScreenSaver >&3 2>/dev/null &
 WAKE_PID=$!
 
 # shellcheck disable=SC2064
-trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; start pillow 2>/dev/null; lipc-set-prop com.lab126.blanket load screensaver; log 'Daemon stopped, pillow and screensaver restored'; exit 0" INT TERM
+trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; shield_down; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; lipc-set-prop com.lab126.blanket load screensaver; log 'Daemon stopped, screensaver restored'; exit 0" INT TERM
 
 while read -r LINE <&3; do
     log "Event: $LINE"
     case "$LINE" in
         *goingToScreenSaver*)
-            stop pillow 2>/dev/null
+            shield_up
+            sleep 0.5
             draw_screensaver
-            log "Wrote screensaver, pillow stopped"
+            log "Wrote screensaver with shield"
             ;;
         *outOfScreenSaver*)
-            start pillow 2>/dev/null
+            shield_down
             $FBINK -k -f -W GC16
             DISPLAY=:0 xrefresh
-            log "Woke up, pillow started, xrefresh sent"
+            log "Woke up, shield down, xrefresh sent"
             ;;
     esac
 done

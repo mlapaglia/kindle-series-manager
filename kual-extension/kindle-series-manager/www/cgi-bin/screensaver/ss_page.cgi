@@ -55,9 +55,23 @@ echo "<div>"
 
 echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Device Info</span></div>"
+FBINK_SS_PIDFILE="/tmp/fbink_ss_daemon.pid"
+if [ -f "$FBINK_SS_PIDFILE" ] && kill -0 "$(cat "$FBINK_SS_PIDFILE")" 2>/dev/null; then
+    FBINK_SS_STATUS="running"
+else
+    FBINK_SS_STATUS="stopped"
+fi
+
 if [ "$SS_WIDTH" != "0" ]; then
     echo "<div style='font-size:14px;margin-bottom:4px;'>Model: <strong>$(html_escape "$MODEL_NAME")</strong></div>"
-    echo "<div style='font-size:14px;margin-bottom:8px;'>Screen: <strong>${SS_WIDTH}x${SS_HEIGHT}</strong></div>"
+    echo "<div style='font-size:14px;margin-bottom:4px;'>Screen: <strong>${SS_WIDTH}x${SS_HEIGHT}</strong></div>"
+    echo "<div style='font-size:14px;margin-bottom:8px;'>FBInk Screensaver: <strong>"
+    if [ "$FBINK_SS_STATUS" = "running" ]; then
+        echo "<span style='color:#27ae60;'>Enabled</span>"
+    else
+        echo "<span style='color:var(--fg-muted);'>Disabled</span>"
+    fi
+    echo "</strong> <span style='font-size:12px;color:var(--fg-fainter);'>(toggle in KUAL)</span></div>"
 else
     echo "<div style='font-size:14px;margin-bottom:8px;color:var(--danger);'>Could not detect model (serial: $(html_escape "$SERIAL"))</div>"
     echo "<div class='panel-header'>Select your model</div>"
@@ -93,7 +107,7 @@ if [ -d "$SS_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/ss_thumb.cgi?src=active&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/screensaver/ss_thumb.cgi?src=active&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssDisable('$SAFE_FNAME')\">Disable</button>"
@@ -120,7 +134,7 @@ if [ -d "$DISABLED_DIR" ]; then
         FNAME=$(basename "$IMG")
         SAFE_FNAME=$(html_escape "$FNAME")
         echo "<div style='text-align:center;'>"
-        echo "<img src='/cgi-bin/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
+        echo "<img src='/cgi-bin/screensaver/ss_thumb.cgi?src=disabled&name=$SAFE_FNAME&t=$CACHE_BUST' style='width:100%;border-radius:4px;border:1px solid var(--border);opacity:0.5;' alt='$SAFE_FNAME'>"
         echo "<div style='font-size:11px;color:var(--fg-muted);margin:4px 0;'>$SAFE_FNAME</div>"
         echo "<div style='display:flex;gap:4px;justify-content:center;'>"
         echo "<button class='btn' style='font-size:11px;padding:2px 8px;' onclick=\"ssEnable('$SAFE_FNAME')\">Enable</button>"

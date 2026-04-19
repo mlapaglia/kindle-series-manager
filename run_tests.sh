@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 echo "========================================"
 echo "  Tier 1 & 3: Python Tests"
@@ -14,9 +14,7 @@ EXCLUDES="SC2086,SC2046,SC2181,SC2012,SC2018,SC2019"
 shellcheck -s sh -e "$EXCLUDES" kual-extension/kindle-series-manager/bin/*.sh
 echo "  Shell scripts OK"
 
-for f in kual-extension/kindle-series-manager/www/cgi-bin/*.cgi; do
-    shellcheck -s sh -e "$EXCLUDES" "$f"
-done
+find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi' -print0 | xargs -0 shellcheck -s sh -e "$EXCLUDES"
 echo "  CGI scripts OK"
 
 echo ""
@@ -37,12 +35,13 @@ echo "========================================"
 echo "  Release Package Validation"
 echo "========================================"
 zip -r /tmp/test-package.zip . -x '.git/*' '.github/*' '.venv/*' '__pycache__/*' '*.pyc' > /dev/null
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/config.xml"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/menu.json"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/bin/webapp.sh"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/www/index.html"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/www/cgi-bin/create.cgi"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/bin/fbink_ss_daemon.sh"
+PKG_LIST=$(unzip -l /tmp/test-package.zip)
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/config.xml"
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/menu.json"
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/bin/webapp.sh"
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/www/index.html"
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/www/cgi-bin/series/create.cgi"
+echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/bin/fbink_ss_daemon.sh"
 rm -f /tmp/test-package.zip
 echo "  Package structure OK"
 

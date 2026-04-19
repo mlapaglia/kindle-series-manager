@@ -416,7 +416,7 @@ function setActive(id) {
 function loadSeries() {
   setActive('btnList');
   setStatus('Loading...');
-  fetch('/cgi-bin/series.cgi')
+  fetch('/cgi-bin/series/series.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
       document.getElementById('content').innerHTML = text;
@@ -430,7 +430,7 @@ function loadCreate() {
   setStatus('Loading books...');
   selectedBooks = [];
   editingSeriesId = null;
-  fetch('/cgi-bin/books.cgi')
+  fetch('/cgi-bin/series/books.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
       document.getElementById('content').innerHTML = text;
@@ -446,8 +446,8 @@ function editSeries(seriesId) {
   editingSeriesId = seriesId;
 
   Promise.all([
-    fetch('/cgi-bin/seriesdata.cgi?id=' + encodeURIComponent(seriesId)).then(function(r) { return r.json(); }),
-    fetch('/cgi-bin/books.cgi').then(function(r) { return r.text(); })
+    fetch('/cgi-bin/series/seriesdata.cgi?id=' + encodeURIComponent(seriesId)).then(function(r) { return r.json(); }),
+    fetch('/cgi-bin/series/books.cgi').then(function(r) { return r.text(); })
   ]).then(function(results) {
     var data = results[0];
     var html = results[1];
@@ -591,7 +591,7 @@ function saveSeries() {
     body += '&edit_id=' + encodeURIComponent(editingSeriesId);
   }
 
-  fetch('/cgi-bin/create.cgi', {
+  fetch('/cgi-bin/series/create.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: body
@@ -608,7 +608,7 @@ function saveSeries() {
 function removeSeries(seriesId) {
   if (!confirm('Remove this series? Books will return to the library.')) return;
   setStatus('Removing...');
-  fetch('/cgi-bin/remove.cgi?id=' + encodeURIComponent(seriesId))
+  fetch('/cgi-bin/series/remove.cgi?id=' + encodeURIComponent(seriesId))
     .then(function(r) { return r.text(); })
     .then(function(text) {
       setStatus(text);
@@ -620,7 +620,7 @@ function removeSeries(seriesId) {
 function loadProgress() {
   setActive('btnProgress');
   setStatus('Loading...');
-  fetch('/cgi-bin/grpage.cgi')
+  fetch('/cgi-bin/goodreads/grpage.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
       document.getElementById('content').innerHTML = text;
@@ -641,7 +641,7 @@ function grSaveCreds() {
   }
 
   statusEl.textContent = 'Saving...';
-  fetch('/cgi-bin/gr_savecreds.cgi', {
+  fetch('/cgi-bin/goodreads/gr_savecreds.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: 'email=' + encodeURIComponent(email)
@@ -654,7 +654,7 @@ function grSaveCreds() {
 }
 
 function grLogout() {
-  fetch('/cgi-bin/gr_logout.cgi', { method: 'POST' })
+  fetch('/cgi-bin/goodreads/gr_logout.cgi', { method: 'POST' })
     .then(function(r) { return r.text(); })
     .then(function() { loadProgress(); })
     .catch(function(e) { setStatus('Error: ' + e); });
@@ -665,7 +665,7 @@ function grLogin() {
   el.style.display = 'block';
   el.textContent = 'Signing in...';
 
-  fetch('/cgi-bin/gr_dologin.cgi', {
+  fetch('/cgi-bin/goodreads/gr_dologin.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: ''
@@ -682,7 +682,7 @@ function grBuildMapping() {
   el.style.display = 'block';
   el.textContent = 'Building mapping...';
 
-  fetch('/cgi-bin/gr_domapping.cgi', {
+  fetch('/cgi-bin/goodreads/gr_domapping.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: ''
@@ -702,7 +702,7 @@ function grRefreshStatus() {
 function loadScreensavers() {
   setActive('btnScreensavers');
   setStatus('Loading...');
-  fetch('/cgi-bin/sspage.cgi')
+  fetch('/cgi-bin/screensaver/ss_page.cgi')
     .then(function(r) { return r.text(); })
     .then(function(text) {
       document.getElementById('content').innerHTML = text;
@@ -962,7 +962,7 @@ function ssUpload() {
   var statusEl = document.getElementById('ssUploadStatus');
   statusEl.textContent = 'Uploading...';
 
-  fetch('/cgi-bin/ss_upload.cgi', {
+  fetch('/cgi-bin/screensaver/ssupload.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'text/plain'},
     body: window._ssUploadData
@@ -978,7 +978,7 @@ function ssUpload() {
 
 function ssDisable(name) {
   setStatus('Disabling...');
-  fetch('/cgi-bin/ss_disable.cgi', {
+  fetch('/cgi-bin/screensaver/ss_disable.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: 'name=' + encodeURIComponent(name)
@@ -990,7 +990,7 @@ function ssDisable(name) {
 
 function ssEnable(name) {
   setStatus('Enabling...');
-  fetch('/cgi-bin/ss_enable.cgi', {
+  fetch('/cgi-bin/screensaver/ss_enable.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: 'name=' + encodeURIComponent(name)
@@ -1003,7 +1003,7 @@ function ssEnable(name) {
 function ssDelete(src, name) {
   if (!confirm('Permanently delete ' + name + '?')) return;
   setStatus('Deleting...');
-  fetch('/cgi-bin/ss_delete.cgi', {
+  fetch('/cgi-bin/screensaver/ss_delete.cgi', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: 'src=' + encodeURIComponent(src) + '&name=' + encodeURIComponent(name)
@@ -1038,7 +1038,7 @@ function loadUpload() {
   setStatus('');
   uploadQueue = [];
 
-  fetch('/cgi-bin/books_browse.cgi')
+  fetch('/cgi-bin/upload/books_browse.cgi')
     .then(function(r) { return r.json(); })
     .then(function(folders) {
       uploadFolders = folders;
@@ -1251,7 +1251,7 @@ function uploadNext(index, subfolder) {
 
   var reader = new FileReader();
   reader.onload = function(e) {
-    var url = '/cgi-bin/upload_book.cgi?filename=' + encodeURIComponent(item.name)
+    var url = '/cgi-bin/upload/upload_book.cgi?filename=' + encodeURIComponent(item.name)
       + '&subfolder=' + encodeURIComponent(subfolder);
     fetch(url, {
       method: 'POST',
@@ -1287,7 +1287,7 @@ function uploadNext(index, subfolder) {
 }
 
 function uploadRefreshLibrary() {
-  fetch('/cgi-bin/refresh_library.cgi', { method: 'POST' })
+  fetch('/cgi-bin/upload/refresh_library.cgi', { method: 'POST' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var resultEl = document.getElementById('uploadResult');
