@@ -5,8 +5,10 @@ SS_SHIELD="$EXT_DIR/bin/ss_shield"
 
 if [ -f /lib/ld-linux-armhf.so.3 ]; then
     FBINK="$EXT_DIR/bin/fbink_hf"
-else
+elif grep -q 'v[7-9]' /proc/cpuinfo 2>/dev/null; then
     FBINK="$EXT_DIR/bin/fbink_sf"
+else
+    FBINK="$EXT_DIR/bin/fbink_k5"
 fi
 PIDFILE="/tmp/fbink_ss_daemon.pid"
 SHIELD_PIDFILE="/tmp/ss_shield.pid"
@@ -35,7 +37,7 @@ shield_down() {
 echo $$ > "$PIDFILE"
 log "=== FBInk screensaver daemon started (PID $$) ==="
 
-chmod +x "$SS_SHIELD" "$FBINK" 2>/dev/null
+chmod +x "$SS_SHIELD" "$EXT_DIR/bin/fbink_hf" "$EXT_DIR/bin/fbink_sf" "$EXT_DIR/bin/fbink_k5" 2>/dev/null
 lipc-set-prop com.lab126.blanket unload screensaver
 log "Unloaded screensaver module"
 
