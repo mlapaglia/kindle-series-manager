@@ -1,7 +1,7 @@
 /*
  * ss_shield - Full-screen override-redirect X11 window for Kindle
  *
- * Creates an invisible shield window on top of all other windows,
+ * Creates a full-screen shield window on top of all other windows,
  * preventing the status bar (clock, wifi, battery) from painting
  * over FBInk's framebuffer content during screensaver mode.
  *
@@ -14,6 +14,8 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,15 @@ static int signal_pipe[2];
 static void on_signal(int sig) {
     (void)sig;
     char c = 'x';
-    write(signal_pipe[1], &c, 1);
+    int saved_errno = errno;
+    while (write(signal_pipe[1], &c, 1) < 0 && errno == EINTR)
+        ;
+    errno = saved_errno;
+}
+
+static void close_pipe(void) {
+    close(signal_pipe[0]);
+    close(signal_pipe[1]);
 }
 
 int main(void) {
@@ -42,10 +52,13 @@ int main(void) {
         return 1;
     }
 
+    fcntl(signal_pipe[1], F_SETFL, O_NONBLOCK);
+
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
         fprintf(stderr, "ss_shield: cannot open display (DISPLAY=%s)\n",
                 getenv("DISPLAY") ? getenv("DISPLAY") : "(unset)");
+        close_pipe();
         return 1;
     }
 
@@ -88,8 +101,11 @@ int main(void) {
         FD_SET(x11_fd, &fds);
         FD_SET(signal_pipe[0], &fds);
 
-        if (select(max_fd + 1, &fds, NULL, NULL, NULL) < 0)
+        if (select(max_fd + 1, &fds, NULL, NULL, NULL) < 0) {
+            if (errno == EINTR)
+                continue;
             break;
+        }
 
         if (FD_ISSET(signal_pipe[0], &fds))
             break;
@@ -112,7 +128,6 @@ int main(void) {
     fprintf(stderr, "ss_shield: shutting down\n");
     XDestroyWindow(dpy, win);
     XCloseDisplay(dpy);
-    close(signal_pipe[0]);
-    close(signal_pipe[1]);
+    close_pipe();
     return 0;
 }
