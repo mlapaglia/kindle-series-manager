@@ -10,6 +10,7 @@ permissions:
 env:
   FBINK_VERSION: v1.27.0
   FBINK_REPO: mlapaglia/FBInk
+  FBINK_HASH: b6334723
 
 jobs:
   package:
@@ -23,26 +24,19 @@ jobs:
       - name: Download FBInk binaries
         run: |
           BIN_DIR=kual-extension/kindle-series-manager/bin
-          FBINK_TAG=$(gh api repos/${{ env.FBINK_REPO }}/releases/tags/${{ env.FBINK_VERSION }} --jq '.tag_name')
+          BASE_URL="https://github.com/${{ env.FBINK_REPO }}/releases/download/${{ env.FBINK_VERSION }}"
 
-          for VARIANT in Kindle-HF Kindle Kindle5; do
-            ASSET=$(gh api repos/${{ env.FBINK_REPO }}/releases/tags/${{ env.FBINK_VERSION }} \
-              --jq ".assets[] | select(.name | startswith(\"FBInk-${VARIANT}-\")) | .browser_download_url")
-            echo "Downloading $VARIANT from $ASSET"
-            curl -fSL "$ASSET" -o /tmp/fbink.tar.gz
-            tar -xzf /tmp/fbink.tar.gz -C /tmp fbink
-            case "$VARIANT" in
-              Kindle-HF) mv /tmp/fbink "$BIN_DIR/fbink_hf" ;;
-              Kindle)    mv /tmp/fbink "$BIN_DIR/fbink_sf" ;;
-              Kindle5)   mv /tmp/fbink "$BIN_DIR/fbink_k5" ;;
-            esac
-            rm -f /tmp/fbink.tar.gz
+          TMPDIR=$(mktemp -d)
+          for PAIR in "Kindle-HF:fbink_hf" "Kindle:fbink_sf" "Kindle5:fbink_k5"; do
+            VARIANT="${PAIR%%:*}"
+            TARGET="${PAIR##*:}"
+            curl -fSL "$BASE_URL/FBInk-${VARIANT}-${{ env.FBINK_HASH }}.tar.gz" | tar -xzf - -C "$TMPDIR"
+            mv "$TMPDIR/fbink" "$BIN_DIR/$TARGET"
+            rm -f "$TMPDIR"/*
           done
-
+          rm -rf "$TMPDIR"
           chmod +x "$BIN_DIR"/fbink_*
           ls -la "$BIN_DIR"/fbink_*
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Create zip archive
         run: |
