@@ -55,9 +55,23 @@ echo "<div>"
 
 echo "<div class='card'>"
 echo "<div class='card-header'><span class='card-title'>Device Info</span></div>"
+FBINK_SS_PIDFILE="/tmp/fbink_ss_daemon.pid"
+if [ -f "$FBINK_SS_PIDFILE" ] && kill -0 "$(cat "$FBINK_SS_PIDFILE")" 2>/dev/null; then
+    FBINK_SS_STATUS="running"
+else
+    FBINK_SS_STATUS="stopped"
+fi
+
 if [ "$SS_WIDTH" != "0" ]; then
     echo "<div style='font-size:14px;margin-bottom:4px;'>Model: <strong>$(html_escape "$MODEL_NAME")</strong></div>"
-    echo "<div style='font-size:14px;margin-bottom:8px;'>Screen: <strong>${SS_WIDTH}x${SS_HEIGHT}</strong></div>"
+    echo "<div style='font-size:14px;margin-bottom:4px;'>Screen: <strong>${SS_WIDTH}x${SS_HEIGHT}</strong></div>"
+    echo "<div style='font-size:14px;margin-bottom:8px;'>FBInk Screensaver: <strong>"
+    if [ "$FBINK_SS_STATUS" = "running" ]; then
+        echo "<span style='color:#27ae60;'>Enabled</span>"
+    else
+        echo "<span style='color:var(--fg-muted);'>Disabled</span>"
+    fi
+    echo "</strong> <span style='font-size:12px;color:var(--fg-fainter);'>(toggle in KUAL)</span></div>"
 else
     echo "<div style='font-size:14px;margin-bottom:8px;color:var(--danger);'>Could not detect model (serial: $(html_escape "$SERIAL"))</div>"
     echo "<div class='panel-header'>Select your model</div>"
