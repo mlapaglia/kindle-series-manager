@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 echo "========================================"
 echo "  Tier 1 & 3: Python Tests"
@@ -14,9 +14,9 @@ EXCLUDES="SC2086,SC2046,SC2181,SC2012,SC2018,SC2019"
 shellcheck -s sh -e "$EXCLUDES" kual-extension/kindle-series-manager/bin/*.sh
 echo "  Shell scripts OK"
 
-find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi' | while read -r f; do
+while read -r f; do
     shellcheck -s sh -e "$EXCLUDES" "$f"
-done
+done < <(find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi')
 echo "  CGI scripts OK"
 
 echo ""
