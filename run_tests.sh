@@ -14,7 +14,7 @@ EXCLUDES="SC2086,SC2046,SC2181,SC2012,SC2018,SC2019"
 shellcheck -s sh -e "$EXCLUDES" kual-extension/kindle-series-manager/bin/*.sh
 echo "  Shell scripts OK"
 
-for f in kual-extension/kindle-series-manager/www/cgi-bin/*.cgi; do
+find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi' | while read -r f; do
     shellcheck -s sh -e "$EXCLUDES" "$f"
 done
 echo "  CGI scripts OK"
@@ -41,7 +41,7 @@ unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/c
 unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/menu.json"
 unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/bin/webapp.sh"
 unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/www/index.html"
-unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/www/cgi-bin/create.cgi"
+unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/www/cgi-bin/series/create.cgi"
 unzip -l /tmp/test-package.zip | grep -q "kual-extension/kindle-series-manager/bin/fbink_ss_daemon.sh"
 rm -f /tmp/test-package.zip
 echo "  Package structure OK"
