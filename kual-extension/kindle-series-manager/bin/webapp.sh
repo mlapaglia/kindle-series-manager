@@ -4,7 +4,7 @@
 # Access from your phone/PC on the same WiFi network.
 #
 
-EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 WWW_DIR="$EXT_DIR/www"
 HTTPD="$EXT_DIR/bin/busybox-httpd"
 PORT=8080

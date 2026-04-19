@@ -2,7 +2,7 @@
 echo "Content-Type: application/json"
 echo ""
 
-GR_DIR="/mnt/base-us/extensions/kindle-series-manager/goodreads"
+GR_DIR="/mnt/us/extensions/kindle-series-manager/goodreads"
 FLAG_FILE="/mnt/us/ENABLE_GR_SYNC"
 LOG_FILE="$GR_DIR/gr_sync.log"
 

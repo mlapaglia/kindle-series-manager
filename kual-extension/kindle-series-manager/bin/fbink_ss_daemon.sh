@@ -1,6 +1,6 @@
 #!/bin/sh
 
-EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 SS_SHIELD="$EXT_DIR/bin/ss_shield"
 
 if [ -f /lib/ld-linux-armhf.so.3 ]; then

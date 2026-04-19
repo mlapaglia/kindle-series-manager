@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PIDFILE="/tmp/fbink_ss_daemon.pid"
-EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 DAEMON="$EXT_DIR/bin/fbink_ss_daemon.sh"
 ACTION="$1"
 

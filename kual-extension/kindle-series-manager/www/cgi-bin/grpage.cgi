@@ -2,7 +2,7 @@
 echo "Content-Type: text/html"
 echo ""
 
-GR_DIR="/mnt/base-us/extensions/kindle-series-manager/goodreads"
+GR_DIR="/mnt/us/extensions/kindle-series-manager/goodreads"
 CREDS_FILE="$GR_DIR/gr_creds.json"
 COOKIE_JAR="$GR_DIR/gr_cookies.txt"
 MAPPING_FILE="$GR_DIR/gr_mapping.json"

@@ -2,7 +2,7 @@
 echo "Content-Type: text/plain"
 echo ""
 
-GR_DIR="/mnt/base-us/extensions/kindle-series-manager/goodreads"
+GR_DIR="/mnt/us/extensions/kindle-series-manager/goodreads"
 MAPPING_SCRIPT="$GR_DIR/gr_build_mapping.sh"
 
 if [ ! -f "$MAPPING_SCRIPT" ]; then
