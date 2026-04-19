@@ -35,7 +35,7 @@ shield_down() {
 echo $$ > "$PIDFILE"
 log "=== FBInk screensaver daemon started (PID $$) ==="
 
-chmod +x "$SS_SHIELD" 2>/dev/null
+chmod +x "$SS_SHIELD" "$FBINK" 2>/dev/null
 lipc-set-prop com.lab126.blanket unload screensaver
 log "Unloaded screensaver module"
 
@@ -75,8 +75,7 @@ while read -r LINE <&3; do
     log "Event: $LINE"
     case "$LINE" in
         *goingToScreenSaver*)
-            shield_up
-            sleep 0.5
+            shield_up;
             draw_screensaver
             log "Wrote screensaver with shield"
             ;;
