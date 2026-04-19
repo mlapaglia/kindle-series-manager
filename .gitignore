@@ -12,6 +12,9 @@
 *.env
 /cc.db
 kual-extension/kindle-series-manager/bin/ss_shield
+kual-extension/kindle-series-manager/bin/fbink_hf
+kual-extension/kindle-series-manager/bin/fbink_sf
+kual-extension/kindle-series-manager/bin/fbink_k5
 goodreads/gr_creds.json
 goodreads/gr_cookies.txt
 goodreads/gr_session.txt

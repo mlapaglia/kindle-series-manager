@@ -7,6 +7,10 @@ on:
 permissions:
   contents: write
 
+env:
+  FBINK_VERSION: v1.27.0
+  FBINK_REPO: mlapaglia/FBInk
+
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -15,6 +19,30 @@ jobs:
 
       - name: Build ss_shield
         run: bash tools/ss_shield/build.sh
+
+      - name: Download FBInk binaries
+        run: |
+          BIN_DIR=kual-extension/kindle-series-manager/bin
+          FBINK_TAG=$(gh api repos/${{ env.FBINK_REPO }}/releases/tags/${{ env.FBINK_VERSION }} --jq '.tag_name')
+
+          for VARIANT in Kindle-HF Kindle Kindle5; do
+            ASSET=$(gh api repos/${{ env.FBINK_REPO }}/releases/tags/${{ env.FBINK_VERSION }} \
+              --jq ".assets[] | select(.name | startswith(\"FBInk-${VARIANT}-\")) | .browser_download_url")
+            echo "Downloading $VARIANT from $ASSET"
+            curl -fSL "$ASSET" -o /tmp/fbink.tar.gz
+            tar -xzf /tmp/fbink.tar.gz -C /tmp fbink
+            case "$VARIANT" in
+              Kindle-HF) mv /tmp/fbink "$BIN_DIR/fbink_hf" ;;
+              Kindle)    mv /tmp/fbink "$BIN_DIR/fbink_sf" ;;
+              Kindle5)   mv /tmp/fbink "$BIN_DIR/fbink_k5" ;;
+            esac
+            rm -f /tmp/fbink.tar.gz
+          done
+
+          chmod +x "$BIN_DIR"/fbink_*
+          ls -la "$BIN_DIR"/fbink_*
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Create zip archive
         run: |

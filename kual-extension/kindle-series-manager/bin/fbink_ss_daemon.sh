@@ -1,8 +1,15 @@
 #!/bin/sh
 
-FBINK="/mnt/us/libkh/bin/fbink"
 EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
 SS_SHIELD="$EXT_DIR/bin/ss_shield"
+
+if [ -f /lib/ld-linux-armhf.so.3 ]; then
+    FBINK="$EXT_DIR/bin/fbink_hf"
+elif grep -q 'v[7-9]' /proc/cpuinfo 2>/dev/null; then
+    FBINK="$EXT_DIR/bin/fbink_sf"
+else
+    FBINK="$EXT_DIR/bin/fbink_k5"
+fi
 PIDFILE="/tmp/fbink_ss_daemon.pid"
 SHIELD_PIDFILE="/tmp/ss_shield.pid"
 LOG="$EXT_DIR/fbink_ss.log"
@@ -30,7 +37,7 @@ shield_down() {
 echo $$ > "$PIDFILE"
 log "=== FBInk screensaver daemon started (PID $$) ==="
 
-chmod +x "$SS_SHIELD" 2>/dev/null
+chmod +x "$SS_SHIELD" "$EXT_DIR/bin/fbink_hf" "$EXT_DIR/bin/fbink_sf" "$EXT_DIR/bin/fbink_k5" 2>/dev/null
 lipc-set-prop com.lab126.blanket unload screensaver
 log "Unloaded screensaver module"
 
@@ -70,8 +77,7 @@ while read -r LINE <&3; do
     log "Event: $LINE"
     case "$LINE" in
         *goingToScreenSaver*)
-            shield_up
-            sleep 0.5
+            shield_up;
             draw_screensaver
             log "Wrote screensaver with shield"
             ;;
