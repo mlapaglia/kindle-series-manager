@@ -14,9 +14,7 @@ EXCLUDES="SC2086,SC2046,SC2181,SC2012,SC2018,SC2019"
 shellcheck -s sh -e "$EXCLUDES" kual-extension/kindle-series-manager/bin/*.sh
 echo "  Shell scripts OK"
 
-while read -r f; do
-    shellcheck -s sh -e "$EXCLUDES" "$f"
-done < <(find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi')
+find kual-extension/kindle-series-manager/www/cgi-bin -name '*.cgi' -print0 | xargs -0 shellcheck -s sh -e "$EXCLUDES"
 echo "  CGI scripts OK"
 
 echo ""
