@@ -39,6 +39,7 @@ log "=== FBInk screensaver daemon started (PID $$) ==="
 
 chmod +x "$SS_SHIELD" "$EXT_DIR/bin/fbink_hf" "$EXT_DIR/bin/fbink_sf" "$EXT_DIR/bin/fbink_k5" 2>/dev/null
 lipc-set-prop com.lab126.blanket unload screensaver
+lipc-set-prop com.lab126.blanket unload ad_screensaver
 log "Unloaded screensaver module"
 
 draw_screensaver() {
@@ -71,7 +72,7 @@ lipc-wait-event -m com.lab126.powerd outOfScreenSaver >&3 2>/dev/null &
 WAKE_PID=$!
 
 # shellcheck disable=SC2064
-trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; shield_down; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; lipc-set-prop com.lab126.blanket load screensaver; log 'Daemon stopped, screensaver restored'; exit 0" INT TERM
+trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; shield_down; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; lipc-set-prop com.lab126.blanket load screensaver; lipc-set-prop com.lab126.blanket load ad_screensaver; log 'Daemon stopped, screensaver restored'; exit 0" INT TERM
 
 while read -r LINE <&3; do
     log "Event: $LINE"
