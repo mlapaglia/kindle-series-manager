@@ -1,6 +1,7 @@
 name: Package Release
 
 on:
+  pull_request:
   release:
     types: [created]
 
