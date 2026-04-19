@@ -27,19 +27,15 @@ jobs:
           BIN_DIR=kual-extension/kindle-series-manager/bin
           BASE_URL="https://github.com/${{ env.FBINK_REPO }}/releases/download/${{ env.FBINK_VERSION }}"
 
-          curl -fSL "$BASE_URL/FBInk-Kindle-HF-${{ env.FBINK_HASH }}.tar.gz" -o /tmp/fbink_hf.tar.gz
-          tar -xzf /tmp/fbink_hf.tar.gz -C /tmp fbink
-          mv /tmp/fbink "$BIN_DIR/fbink_hf"
-
-          curl -fSL "$BASE_URL/FBInk-Kindle-${{ env.FBINK_HASH }}.tar.gz" -o /tmp/fbink_sf.tar.gz
-          tar -xzf /tmp/fbink_sf.tar.gz -C /tmp fbink
-          mv /tmp/fbink "$BIN_DIR/fbink_sf"
-
-          curl -fSL "$BASE_URL/FBInk-Kindle5-${{ env.FBINK_HASH }}.tar.gz" -o /tmp/fbink_k5.tar.gz
-          tar -xzf /tmp/fbink_k5.tar.gz -C /tmp fbink
-          mv /tmp/fbink "$BIN_DIR/fbink_k5"
-
-          rm -f /tmp/fbink_*.tar.gz
+          TMPDIR=$(mktemp -d)
+          for PAIR in "Kindle-HF:fbink_hf" "Kindle:fbink_sf" "Kindle5:fbink_k5"; do
+            VARIANT="${PAIR%%:*}"
+            TARGET="${PAIR##*:}"
+            curl -fSL "$BASE_URL/FBInk-${VARIANT}-${{ env.FBINK_HASH }}.tar.gz" | tar -xzf - -C "$TMPDIR"
+            mv "$TMPDIR/fbink" "$BIN_DIR/$TARGET"
+            rm -f "$TMPDIR"/*
+          done
+          rm -rf "$TMPDIR"
           chmod +x "$BIN_DIR"/fbink_*
           ls -la "$BIN_DIR"/fbink_*
 
