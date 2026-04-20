@@ -3,7 +3,7 @@ echo "Content-Type: text/plain"
 echo ""
 
 DB="${DB:-/var/local/cc.db}"
-LOG="/mnt/base-us/extensions/kindle-series-manager/series.log"
+LOG="/mnt/us/extensions/kindle-series-manager/series.log"
 
 SERIES_ID=$(echo "$QUERY_STRING" | sed 's/id=//;s/%3A/:/g;s/%2F/\//g;s/+/ /g')
 

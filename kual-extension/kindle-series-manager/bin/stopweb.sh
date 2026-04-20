@@ -3,7 +3,7 @@
 # Stop the series manager web server and restore firewall.
 #
 
-EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 PORT=8080
 PIDFILE="/tmp/kindle_series_httpd.pid"
 HTTPD_BIN="busybox-httpd"

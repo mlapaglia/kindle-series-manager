@@ -2,7 +2,7 @@
 echo "Content-Type: text/plain"
 echo ""
 
-GR_DIR="/mnt/base-us/extensions/kindle-series-manager/goodreads"
+GR_DIR="/mnt/us/extensions/kindle-series-manager/goodreads"
 LOGIN_SCRIPT="$GR_DIR/gr_login.sh"
 
 if [ ! -f "$LOGIN_SCRIPT" ]; then

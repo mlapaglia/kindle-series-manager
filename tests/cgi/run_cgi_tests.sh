@@ -104,6 +104,8 @@ assert_not_contains() {
 echo "=== CGI Integration Tests ==="
 echo ""
 
+echo "5.16.3" > /etc/version.txt 2>/dev/null || true
+
 TEST_DIR=$(setup_test_db)
 TEST_DB="$TEST_DIR/cc.db"
 

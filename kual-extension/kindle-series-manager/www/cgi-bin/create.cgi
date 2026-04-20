@@ -2,8 +2,20 @@
 echo "Content-Type: text/plain"
 echo ""
 
+FW_VERSION=$(cat /etc/version.txt 2>/dev/null || echo "0.0.0")
+FW_MAJOR=$(echo "$FW_VERSION" | cut -d'.' -f1)
+FW_MINOR=$(echo "$FW_VERSION" | cut -d'.' -f2)
+FW_PATCH=$(echo "$FW_VERSION" | cut -d'.' -f3)
+
+if [ "$FW_MAJOR" -lt 5 ] 2>/dev/null || \
+   { [ "$FW_MAJOR" -eq 5 ] && [ "$FW_MINOR" -lt 13 ]; } 2>/dev/null || \
+   { [ "$FW_MAJOR" -eq 5 ] && [ "$FW_MINOR" -eq 13 ] && [ "${FW_PATCH:-0}" -lt 4 ]; } 2>/dev/null; then
+    echo "Error: Series grouping requires firmware 5.13.4 or later (current: $FW_VERSION)"
+    exit 0
+fi
+
 DB="${DB:-/var/local/cc.db}"
-LOG="/mnt/base-us/extensions/kindle-series-manager/series.log"
+LOG="/mnt/us/extensions/kindle-series-manager/series.log"
 
 logit() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [create] $1" >> "$LOG"

@@ -5,7 +5,7 @@
 #
 
 FLAG_FILE="/mnt/us/ENABLE_GR_SYNC"
-EXT_DIR="/mnt/base-us/extensions/kindle-series-manager"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 UPSTART_SRC="$EXT_DIR/upstart/gr-sync.conf"
 UPSTART_DST="/etc/upstart/gr-sync.conf"
 
