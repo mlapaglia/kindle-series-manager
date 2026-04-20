@@ -53,9 +53,17 @@ CALIBRE_URL=$(echo "$CALIBRE_URL" | sed 's|/$||')
 FULL_URL="${CALIBRE_URL}${DL_PATH}"
 
 if [ -n "$DL_FILENAME" ]; then
-    FILENAME=$(echo "$DL_FILENAME" | tr -d '\r\n')
+    FILENAME=$(basename "$(echo "$DL_FILENAME" | tr -d '\r\n')")
 else
     FILENAME=$(basename "$DL_PATH" | sed 's/%20/ /g;s/%28/(/g;s/%29/)/g;s/%26/\&/g;s/%27/'"'"'/g;s/%2C/,/g')
+fi
+
+case "$FILENAME" in
+    *..*|*/*|*\\*) json_error "Invalid filename" ;;
+esac
+FILENAME=$(echo "$FILENAME" | tr -d '\r\n')
+if [ -z "$FILENAME" ] || [ "$FILENAME" = "." ] || [ "$FILENAME" = ".." ]; then
+    json_error "Invalid filename"
 fi
 
 EXT=$(echo "$FILENAME" | sed 's/.*\.//' | tr 'A-Z' 'a-z')

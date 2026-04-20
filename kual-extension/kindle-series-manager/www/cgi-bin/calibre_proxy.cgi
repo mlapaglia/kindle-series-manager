@@ -28,12 +28,22 @@ if [ -z "$CALIBRE_URL" ]; then
     exit 0
 fi
 
+CALIBRE_URL=$(echo "$CALIBRE_URL" | tr -d '\r\n' | sed 's|/$||')
+case "$CALIBRE_URL" in
+    http://*|https://*) ;;
+    *) printf '{"error":"Invalid Calibre URL (must be http or https)"}'; exit 0 ;;
+esac
+
 if [ -z "$API_PATH" ]; then
     printf '{"error":"No API path specified"}'
     exit 0
 fi
 
-CALIBRE_URL=$(echo "$CALIBRE_URL" | sed 's|/$||')
+case "$API_PATH" in
+    /ajax/*|/get/thumb/*|/get/cover/*) ;;
+    *) printf '{"error":"API path not allowed"}'; exit 0 ;;
+esac
+
 FULL_URL="${CALIBRE_URL}${API_PATH}"
 
 RESULT=$(wget -q -O - --timeout=10 "$FULL_URL" 2>/dev/null)
