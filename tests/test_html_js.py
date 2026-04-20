@@ -92,7 +92,7 @@ class TestNavTabs:
         assert len(nav_buttons) >= 4
 
     def test_nav_button_ids(self, html):
-        expected_ids = ["btnList", "btnCreate", "btnProgress", "btnScreensavers", "btnUpload"]
+        expected_ids = ["btnList", "btnCreate", "btnProgress", "btnScreensavers", "btnUpload", "btnCalibre"]
         for btn_id in expected_ids:
             assert f'id="{btn_id}"' in html, f"Missing nav button: {btn_id}"
 
