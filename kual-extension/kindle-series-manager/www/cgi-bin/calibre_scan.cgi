@@ -32,7 +32,7 @@ done
 IFS="$OLDIFS"
 
 if [ -z "$QS_URL" ] && [ -f "$CONF" ]; then
-    QS_URL=$(cat "$CONF" | tr -d '\r\n')
+    QS_URL=$(tr -d '\r\n' < "$CONF")
 fi
 
 if [ -z "$QS_URL" ]; then

@@ -18,7 +18,7 @@ done
 IFS="$OLDIFS"
 
 if [ -z "$CALIBRE_URL" ] && [ -f "$CONF" ]; then
-    CALIBRE_URL=$(cat "$CONF" | tr -d '\r\n')
+    CALIBRE_URL=$(tr -d '\r\n' < "$CONF")
 fi
 
 if [ -z "$CALIBRE_URL" ] || [ -z "$THUMB_PATH" ]; then

@@ -27,7 +27,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     printf '{"status":"ok","url":"%s"}' "$(json_escape "$URL")"
 else
     if [ -f "$CONF" ]; then
-        SAVED=$(cat "$CONF" | tr -d '\r\n')
+        SAVED=$(tr -d '\r\n' < "$CONF")
         printf '{"url":"%s"}' "$(json_escape "$SAVED")"
     else
         printf '{"url":""}'
