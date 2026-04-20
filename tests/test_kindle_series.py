@@ -242,6 +242,68 @@ class TestSeriesKeyGeneration:
         conn.close()
 
 
+class TestBooksSeriesQuery:
+    """Validate that the SQL query used by books.cgi correctly reports series membership."""
+
+    BOOKS_QUERY = (
+        "SELECT p_cdeKey, p_titles_0_nominal, "
+        "COALESCE((SELECT GROUP_CONCAT("
+        "COALESCE((SELECT p_titles_0_nominal FROM Entries e2 "
+        "WHERE e2.p_cdeKey=REPLACE(s.d_seriesId,'urn:collection:1:asin-','') "
+        "AND e2.p_type='Entry:Item:Series'), '?'), ', ') "
+        "FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), '') "
+        "FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 "
+        "AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal"
+    )
+
+    def test_no_series_returns_empty_string(self, test_db):
+        conn = sqlite3.connect(str(test_db))
+        rows = conn.execute(self.BOOKS_QUERY).fetchall()
+        conn.close()
+        assert len(rows) == 5
+        for _key, _title, series in rows:
+            assert series == ""
+
+    def test_books_in_series_return_series_name(self, test_db):
+        run_cli(
+            "add-series", "--name", "Dungeon Crawler Carl",
+            "--books", "B08BKGYQXW,B08PBCD9Y7,B08V4QSV6W",
+            db=test_db,
+        )
+        conn = sqlite3.connect(str(test_db))
+        rows = conn.execute(self.BOOKS_QUERY).fetchall()
+        conn.close()
+
+        result = {key: series for key, _title, series in rows}
+        assert result["B08BKGYQXW"] == "Dungeon Crawler Carl"
+        assert result["B08PBCD9Y7"] == "Dungeon Crawler Carl"
+        assert result["B08V4QSV6W"] == "Dungeon Crawler Carl"
+        assert result["B071GN8Y4G"] == ""
+        assert result["B09DD17H3N"] == ""
+
+    def test_book_in_multiple_series(self, test_db):
+        run_cli(
+            "add-series", "--name", "Series A",
+            "--books", "B08BKGYQXW,B08PBCD9Y7",
+            db=test_db,
+        )
+        run_cli(
+            "add-series", "--name", "Series B",
+            "--books", "B08BKGYQXW,B08V4QSV6W",
+            db=test_db,
+        )
+        conn = sqlite3.connect(str(test_db))
+        rows = conn.execute(self.BOOKS_QUERY).fetchall()
+        conn.close()
+
+        result = {key: series for key, _title, series in rows}
+        parts = set(result["B08BKGYQXW"].split(", "))
+        assert parts == {"Series A", "Series B"}
+        assert result["B08PBCD9Y7"] == "Series A"
+        assert result["B08V4QSV6W"] == "Series B"
+        assert result["B071GN8Y4G"] == ""
+
+
 class TestMissingDb:
     def test_missing_db_exits(self, tmp_path):
         result = run_cli("diagnose", db=tmp_path / "nonexistent.db")

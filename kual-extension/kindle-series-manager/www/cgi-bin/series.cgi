@@ -32,6 +32,8 @@ for SID in $SERIES_IDS; do
     TITLE=$(sqlite3 "$DB" "SELECT p_titles_0_nominal FROM Entries WHERE p_cdeKey='$S_KEY' AND p_type='Entry:Item:Series';")
     COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_seriesId='$SID';")
 
+    FIRST_KEY=$(sqlite3 "$DB" "SELECT d_itemCdeKey FROM Series WHERE d_seriesId='$SID' ORDER BY d_itemPosition LIMIT 1;")
+
     if [ -z "$TITLE" ]; then
         TITLE="$S_KEY"
     fi
@@ -39,10 +41,19 @@ for SID in $SERIES_IDS; do
     echo "<div class='card'>"
     echo "<div class='card-header'>"
     echo "<div><span class='card-title'>$TITLE</span> <span class='card-subtitle'>$COUNT books</span></div>"
-    echo "<div style='display:flex;gap:8px;'><button class='btn' onclick=\"editSeries('$SID')\">Edit</button><button class='btn btn-danger' onclick=\"removeSeries('$SID')\">Remove</button></div>"
+    echo "<div style='display:flex;gap:8px;'><button class='btn btn-toggle' onclick='toggleCard(this)'>Show</button><button class='btn' onclick=\"editSeries('$SID')\">Edit</button><button class='btn btn-danger' onclick=\"removeSeries('$SID')\">Remove</button></div>"
     echo "</div>"
 
+    echo "<div class='card-body' style='display:none;'>"
+    echo "<div class='card-body-inner'>"
+    if [ -n "$FIRST_KEY" ]; then
+        echo "<img class='series-thumb' src='/cgi-bin/book_thumb.cgi?key=$FIRST_KEY' alt='' onerror='this.style.display=\"none\"'>"
+    fi
+    echo "<div class='series-books'>"
     sqlite3 "$DB" "SELECT '<div class=\"book-item\"><span class=\"book-num\">' || d_itemPositionLabel || '</span>' || COALESCE((SELECT p_titles_0_nominal FROM Entries WHERE p_cdeKey=d_itemCdeKey AND p_type='Entry:Item' LIMIT 1), '(unknown)') || '</div>' FROM Series WHERE d_seriesId='$SID' ORDER BY d_itemPosition;"
+    echo "</div>"
+    echo "</div>"
+    echo "</div>"
 
     echo "</div>"
 done

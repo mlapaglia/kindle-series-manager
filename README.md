@@ -9,7 +9,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 
 > **Full documentation is available at [kindle-series-manager.readthedocs.io](https://kindle-series-manager.readthedocs.io/en/latest/)**
 
-<img width="1203" height="707" alt="image" src="https://github.com/user-attachments/assets/2a53081a-7c32-48b0-b69e-4363ab8dc51a" />
+<img width="775" height="760" alt="image" src="https://github.com/user-attachments/assets/771c8850-b2c2-4c75-913c-55028933c2d1" />
 
 ## Features
 

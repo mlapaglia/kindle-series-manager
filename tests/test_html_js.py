@@ -105,3 +105,37 @@ class TestCSSVariables:
 
     def test_has_dark_theme(self, html):
         assert ".dark {" in html or ".dark{" in html
+
+
+BOOKS_CGI = Path(__file__).parent.parent / "kual-extension" / "kindle-series-manager" / "www" / "cgi-bin" / "books.cgi"
+
+
+@pytest.fixture
+def books_cgi():
+    return BOOKS_CGI.read_text(encoding="utf-8")
+
+
+class TestHideInSeriesFilter:
+    def test_books_cgi_has_hide_checkbox(self, books_cgi):
+        assert "id='hideInSeries'" in books_cgi
+
+    def test_books_cgi_emits_data_series_attr(self, books_cgi):
+        assert "data-series=" in books_cgi
+
+    def test_books_cgi_emits_in_series_class(self, books_cgi):
+        assert "in-series" in books_cgi
+
+    def test_books_cgi_emits_series_label(self, books_cgi):
+        assert "avail-series-label" in books_cgi
+
+    def test_filterbooks_checks_hide_in_series(self, html):
+        js = re.search(r"<script>(.*?)</script>", html, re.DOTALL).group(1)
+        assert "hideInSeries" in js
+        assert "data-series" in js
+
+    def test_css_has_series_label_style(self, html):
+        assert ".avail-series-label" in html
+
+    def test_books_cgi_query_joins_series_table(self, books_cgi):
+        assert "FROM Series" in books_cgi
+        assert "GROUP_CONCAT" in books_cgi
