@@ -383,6 +383,48 @@ body {
   transition: color 0.15s;
 }
 .upload-file-remove:hover { color: var(--danger); }
+
+.cal-book {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-row);
+}
+.cal-book:last-child { border-bottom: none; }
+.cal-book-thumb {
+  width: 48px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--badge-bg);
+}
+.cal-book-info { flex: 1; min-width: 0; }
+.cal-book-title {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-book-meta {
+  font-size: 12px;
+  color: var(--fg-faint);
+  margin-top: 2px;
+}
+.cal-book-actions { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.cal-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+.cal-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.cal-pagination-btns { display: flex; gap: 6px; }
 </style>
 </head>
 <body>
@@ -399,6 +441,7 @@ body {
   <button id="btnProgress" onclick="loadProgress()">Progress Tracking</button>
   <button id="btnScreensavers" onclick="loadScreensavers()">Screensavers</button>
   <button id="btnUpload" onclick="loadUpload()">Upload Books</button>
+  <button id="btnCalibre" onclick="loadCalibre()">Calibre</button>
 </div>
 
 <div class="container">
@@ -1346,6 +1389,279 @@ function uploadRefreshLibrary() {
     .catch(function(e) {
       setStatus('Files uploaded but library refresh failed: ' + e + '. Restart the Kindle to see new books.');
     });
+}
+
+var calState = {
+  url: '', books: [], total: 0, start: 1, num: 25,
+  sort: 'date', order: 'descending', search: '',
+  selected: {}, downloading: false
+};
+
+function loadCalibre() {
+  setActive('btnCalibre');
+  setStatus('');
+  fetch('/cgi-bin/calibre_config.cgi')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      calState.url = data.url || '';
+      renderCalibreTab();
+    })
+    .catch(function() { renderCalibreTab(); });
+}
+
+function renderCalibreTab() {
+  var html = '<div class="card">'
+    + '<div class="card-header"><span class="card-title">Calibre Library</span></div>'
+    + '<div style="margin-bottom:12px;">'
+    + '<div class="panel-header">Calibre Server URL</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;">'
+    + '<input type="text" id="calUrl" class="input-field input-small" style="margin-bottom:0;flex:1;" placeholder="http://192.168.1.100:8080" value="' + escapeHtml(calState.url) + '">'
+    + '<button class="btn btn-primary" onclick="calScan()">Scan</button>'
+    + '</div></div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">'
+    + '<input type="text" id="calSearch" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:120px;" placeholder="Search..." value="' + escapeHtml(calState.search) + '"'
+    + ' onkeydown="if(event.key===\'Enter\'){calState.search=this.value;calState.start=1;calScan();}">'
+    + '<select id="calSort" class="input-field input-small" style="margin-bottom:0;width:auto;" onchange="calState.sort=this.value;calState.start=1;calScan();">'
+    + '<option value="date"' + (calState.sort==='date'?' selected':'') + '>Date</option>'
+    + '<option value="title"' + (calState.sort==='title'?' selected':'') + '>Title</option>'
+    + '<option value="author"' + (calState.sort==='author'?' selected':'') + '>Author</option>'
+    + '<option value="series"' + (calState.sort==='series'?' selected':'') + '>Series</option>'
+    + '<option value="rating"' + (calState.sort==='rating'?' selected':'') + '>Rating</option>'
+    + '</select>'
+    + '<select id="calOrder" class="input-field input-small" style="margin-bottom:0;width:auto;" onchange="calState.order=this.value;calState.start=1;calScan();">'
+    + '<option value="descending"' + (calState.order==='descending'?' selected':'') + '>Desc</option>'
+    + '<option value="ascending"' + (calState.order==='ascending'?' selected':'') + '>Asc</option>'
+    + '</select>'
+    + '</div>'
+    + '<div id="calBooks"></div>'
+    + '<div id="calPagination"></div>'
+    + '<div id="calBulk" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">'
+    + '<button class="btn btn-primary" id="calDlSelected" onclick="calDownloadSelected()">Download Selected (<span id="calSelCount">0</span>)</button>'
+    + '<button class="btn" onclick="calSelectAll()">Select All</button>'
+    + '<button class="btn" onclick="calSelectNone()">Select None</button>'
+    + '</div>'
+    + '<div id="calResult" style="display:none;margin-top:12px;padding:12px;border-radius:6px;font-size:14px;"></div>'
+    + '</div>';
+
+  document.getElementById('content').innerHTML = html;
+  renderCalBooks();
+}
+
+function calScan() {
+  var url = document.getElementById('calUrl').value.trim();
+  if (!url) { setStatus('Enter a Calibre server URL'); return; }
+  calState.url = url;
+  calState.search = document.getElementById('calSearch').value;
+  setStatus('Saving URL & scanning Calibre library...');
+
+  fetch('/cgi-bin/calibre_config.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'url=' + encodeURIComponent(url)
+  }).catch(function() {});
+
+  var qs = 'url=' + encodeURIComponent(url)
+    + '&num=' + calState.num
+    + '&start=' + calState.start
+    + '&sort=' + calState.sort
+    + '&order=' + calState.order
+    + '&search=' + encodeURIComponent(calState.search);
+
+  fetch('/cgi-bin/calibre_scan.cgi?' + qs)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) { setStatus(data.error); return; }
+      calState.books = data.books || [];
+      calState.total = data.total || 0;
+      calState.start = data.start || 1;
+      setStatus('Found ' + data.total + ' books');
+      renderCalBooks();
+      renderCalPagination();
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function renderCalBooks() {
+  var container = document.getElementById('calBooks');
+  var bulkEl = document.getElementById('calBulk');
+  if (!container) return;
+
+  if (calState.books.length === 0) {
+    container.innerHTML = '<div class="empty-state">No books loaded. Enter your Calibre URL and click Scan.</div>';
+    if (bulkEl) bulkEl.style.display = 'none';
+    return;
+  }
+
+  if (bulkEl) bulkEl.style.display = 'flex';
+
+  var html = '<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;">';
+  for (var i = 0; i < calState.books.length; i++) {
+    var b = calState.books[i];
+    var thumbUrl = b.thumb ? '/cgi-bin/calibre_thumb.cgi?path=' + encodeURIComponent(b.thumb) : '';
+    var checked = calState.selected[b.download] ? ' checked' : '';
+    html += '<div class="cal-book">'
+      + (thumbUrl ? '<img class="cal-book-thumb" src="' + thumbUrl + '" onerror="this.style.visibility=\'hidden\'">' : '<div class="cal-book-thumb"></div>')
+      + '<div class="cal-book-info">'
+      + '<div class="cal-book-title">' + escapeHtml(b.title) + '</div>'
+      + '<div class="cal-book-meta">' + escapeHtml(b.format) + (b.date ? ' &middot; ' + escapeHtml(b.date) : '') + '</div>'
+      + '</div>'
+      + '<div class="cal-book-actions">'
+      + '<input type="checkbox" class="cal-check" data-dl="' + escapeHtml(b.download) + '"' + checked + ' onchange="calToggleSelect(this)">'
+      + '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="calDownloadOne(' + i + ')">Download</button>'
+      + '</div></div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+  calUpdateCount();
+}
+
+function renderCalPagination() {
+  var el = document.getElementById('calPagination');
+  if (!el || calState.total === 0) { if (el) el.innerHTML = ''; return; }
+
+  var end = Math.min(calState.start + calState.num - 1, calState.total);
+  var hasPrev = calState.start > 1;
+  var hasNext = end < calState.total;
+  var lastStart = Math.max(1, calState.total - calState.num + 1);
+
+  var html = '<div class="cal-pagination">'
+    + '<span>Books ' + calState.start + ' to ' + end + ' of ' + calState.total + '</span>'
+    + '<div class="cal-pagination-btns">';
+  if (hasPrev) {
+    html += '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="calPage(1)">First</button>'
+      + '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="calPage(' + Math.max(1, calState.start - calState.num) + ')">Prev</button>';
+  }
+  if (hasNext) {
+    html += '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="calPage(' + (calState.start + calState.num) + ')">Next</button>'
+      + '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="calPage(' + lastStart + ')">Last</button>';
+  }
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function calPage(start) {
+  calState.start = start;
+  calScan();
+}
+
+function calToggleSelect(checkbox) {
+  var dl = checkbox.getAttribute('data-dl');
+  if (checkbox.checked) calState.selected[dl] = true;
+  else delete calState.selected[dl];
+  calUpdateCount();
+}
+
+function calSelectAll() {
+  for (var i = 0; i < calState.books.length; i++) {
+    calState.selected[calState.books[i].download] = true;
+  }
+  var checks = document.querySelectorAll('.cal-check');
+  for (var j = 0; j < checks.length; j++) checks[j].checked = true;
+  calUpdateCount();
+}
+
+function calSelectNone() {
+  calState.selected = {};
+  var checks = document.querySelectorAll('.cal-check');
+  for (var j = 0; j < checks.length; j++) checks[j].checked = false;
+  calUpdateCount();
+}
+
+function calUpdateCount() {
+  var el = document.getElementById('calSelCount');
+  if (el) el.textContent = Object.keys(calState.selected).length;
+}
+
+function calDownloadOne(idx) {
+  var b = calState.books[idx];
+  setStatus('Downloading: ' + b.title + '...');
+  fetch('/cgi-bin/calibre_download.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'calibre_url=' + encodeURIComponent(calState.url)
+      + '&download=' + encodeURIComponent(b.download)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'ok') {
+        setStatus('Downloaded: ' + data.filename);
+      } else {
+        setStatus('Failed: ' + (data.message || 'unknown error'));
+      }
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function calDownloadSelected() {
+  var paths = Object.keys(calState.selected);
+  if (paths.length === 0) { setStatus('No books selected'); return; }
+  calState.downloading = true;
+  setStatus('Downloading ' + paths.length + ' book' + (paths.length !== 1 ? 's' : '') + '...');
+  calDownloadNext(paths, 0, 0, 0);
+}
+
+function calDownloadNext(paths, idx, doneCount, errCount) {
+  if (idx >= paths.length) {
+    calState.downloading = false;
+    var msg = 'Downloaded ' + doneCount + ' book' + (doneCount !== 1 ? 's' : '');
+    if (errCount > 0) msg += ' (' + errCount + ' failed)';
+    msg += '. Refreshing library...';
+    setStatus(msg);
+    calRefreshLibrary(doneCount, errCount);
+    return;
+  }
+
+  var dl = paths[idx];
+  var title = '';
+  for (var i = 0; i < calState.books.length; i++) {
+    if (calState.books[i].download === dl) { title = calState.books[i].title; break; }
+  }
+  setStatus('Downloading ' + (idx + 1) + ' of ' + paths.length + ': ' + title);
+
+  fetch('/cgi-bin/calibre_download.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'calibre_url=' + encodeURIComponent(calState.url)
+      + '&download=' + encodeURIComponent(dl)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'ok') doneCount++;
+      else errCount++;
+      calDownloadNext(paths, idx + 1, doneCount, errCount);
+    })
+    .catch(function() {
+      errCount++;
+      calDownloadNext(paths, idx + 1, doneCount, errCount);
+    });
+}
+
+function calRefreshLibrary(doneCount, errCount) {
+  fetch('/cgi-bin/refresh_library.cgi', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var resultEl = document.getElementById('calResult');
+      if (!resultEl) return;
+      resultEl.style.display = 'block';
+      if (data.status === 'ok') {
+        resultEl.style.background = 'var(--surface-alt)';
+        resultEl.style.border = '1px solid var(--border)';
+        resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
+          + ' downloaded from Calibre. Library refreshed.';
+        setStatus('');
+      } else {
+        resultEl.style.background = 'var(--danger-bg)';
+        resultEl.style.border = '1px solid var(--danger-border)';
+        resultEl.textContent = doneCount + ' book' + (doneCount !== 1 ? 's' : '')
+          + ' downloaded, but library refresh failed. Restart your Kindle to see new books.';
+        setStatus('');
+      }
+    })
+    .catch(function(e) {
+      setStatus('Books downloaded but library refresh failed: ' + e);
+    });
+  calState.selected = {};
+  calUpdateCount();
 }
 
 loadSeries();
