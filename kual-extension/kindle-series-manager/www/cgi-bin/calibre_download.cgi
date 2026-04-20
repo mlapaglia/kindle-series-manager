@@ -23,6 +23,7 @@ read -r POST_BODY
 
 CALIBRE_URL=""
 DL_PATH=""
+DL_FILENAME=""
 
 OLDIFS="$IFS"
 IFS='&'
@@ -32,6 +33,7 @@ for PARAM in $POST_BODY; do
     case "$PKEY" in
         calibre_url) CALIBRE_URL=$(printf '%b' "$(echo "$PVAL" | sed 's/+/ /g;s/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')") ;;
         download)    DL_PATH=$(printf '%b' "$(echo "$PVAL" | sed 's/+/ /g;s/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')") ;;
+        filename)    DL_FILENAME=$(printf '%b' "$(echo "$PVAL" | sed 's/+/ /g;s/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')") ;;
     esac
 done
 IFS="$OLDIFS"
@@ -50,7 +52,11 @@ fi
 CALIBRE_URL=$(echo "$CALIBRE_URL" | sed 's|/$||')
 FULL_URL="${CALIBRE_URL}${DL_PATH}"
 
-FILENAME=$(basename "$DL_PATH" | sed 's/%20/ /g;s/%28/(/g;s/%29/)/g;s/%26/\&/g;s/%27/'"'"'/g;s/%2C/,/g')
+if [ -n "$DL_FILENAME" ]; then
+    FILENAME=$(echo "$DL_FILENAME" | tr -d '\r\n')
+else
+    FILENAME=$(basename "$DL_PATH" | sed 's/%20/ /g;s/%28/(/g;s/%29/)/g;s/%26/\&/g;s/%27/'"'"'/g;s/%2C/,/g')
+fi
 
 EXT=$(echo "$FILENAME" | sed 's/.*\.//' | tr 'A-Z' 'a-z')
 case "$EXT" in
