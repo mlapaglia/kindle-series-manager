@@ -45,12 +45,18 @@ echo "</div>"
 echo "<div>"
 echo "<div class='panel-header'>Available Books</div>"
 echo "<input type='text' id='bookFilter' class='input-field input-small' placeholder='Filter...' oninput='filterBooks()'>"
+echo "<label style='display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-muted);margin-bottom:8px;cursor:pointer;user-select:none;'><input type='checkbox' id='hideInSeries' onchange='filterBooks()'> Hide books already in a series</label>"
 echo "<div class='avail-list'>"
 
-sqlite3 "$DB" "SELECT p_cdeKey || '	' || p_titles_0_nominal FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal;" | while IFS='	' read -r KEY TITLE; do
+sqlite3 "$DB" "SELECT p_cdeKey || '	' || p_titles_0_nominal || '	' || COALESCE((SELECT GROUP_CONCAT(COALESCE((SELECT p_titles_0_nominal FROM Entries e2 WHERE e2.p_cdeKey=REPLACE(s.d_seriesId,'urn:collection:1:asin-','') AND e2.p_type='Entry:Item:Series'), '?'), ', ') FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), '') FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal;" | while IFS='	' read -r KEY TITLE SERIES; do
     SAFE_KEY=$(echo "$KEY" | sed "s/'/\&#39;/g;s/\"/\&quot;/g")
     SAFE_TITLE=$(echo "$TITLE" | sed "s/'/\&#39;/g;s/\"/\&quot;/g;s/</\&lt;/g;s/>/\&gt;/g")
-    echo "<div class='avail-book' data-key='$SAFE_KEY' data-title='$SAFE_TITLE' onclick='addBook(this)'>$SAFE_TITLE</div>"
+    SAFE_SERIES=$(echo "$SERIES" | sed "s/'/\&#39;/g;s/\"/\&quot;/g;s/</\&lt;/g;s/>/\&gt;/g")
+    if [ -n "$SERIES" ]; then
+        echo "<div class='avail-book in-series' data-key='$SAFE_KEY' data-title='$SAFE_TITLE' data-series='$SAFE_SERIES' onclick='addBook(this)'>$SAFE_TITLE<span class='avail-series-label'>$SAFE_SERIES</span></div>"
+    else
+        echo "<div class='avail-book' data-key='$SAFE_KEY' data-title='$SAFE_TITLE' data-series='' onclick='addBook(this)'>$SAFE_TITLE</div>"
+    fi
 done
 
 echo "</div>"
