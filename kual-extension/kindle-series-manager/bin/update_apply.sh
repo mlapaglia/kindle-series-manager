@@ -25,11 +25,13 @@ eips -c
 eips 3 5 "Kindle Series Manager"
 eips 3 7 "Updating to $TAG..."
 
+RESTART_SS=0
 if [ -f /tmp/fbink_ss_daemon.pid ]; then
+    RESTART_SS=1
     kill "$(cat /tmp/fbink_ss_daemon.pid)" 2>/dev/null
     rm -f /tmp/fbink_ss_daemon.pid /tmp/ss_shield.pid /tmp/fbink_ss_events.fifo /tmp/fbink_ss_last
     lipc-set-prop com.lab126.blanket load screensaver 2>/dev/null
-    log "Stopped screensaver daemon"
+    log "Stopped screensaver daemon (will restart after update)"
     eips 3 9 "  Stopped screensaver daemon"
 fi
 
@@ -90,6 +92,12 @@ rm -rf "$TMPDIR"
 
 NEW_VER=$(tr -d '\r\n' < "$EXT_DIR/VERSION" 2>/dev/null)
 log "Update complete. VERSION file: $NEW_VER"
+
+if [ "$RESTART_SS" = "1" ]; then
+    log "Re-enabling FBInk screensaver daemon"
+    sh "$EXT_DIR/bin/fbink_ss_toggle.sh" enable
+    log "FBInk screensaver daemon restarted"
+fi
 
 eips -c
 eips 3 5 "==================================="
