@@ -20,40 +20,41 @@ fi
 
 DB="${DB:-/var/local/cc.db}"
 
-SERIES_IDS=$(sqlite3 "$DB" "SELECT DISTINCT d_seriesId FROM Series ORDER BY d_seriesId;")
-
-if [ -z "$SERIES_IDS" ]; then
-    echo "<div class='empty-state'>No series on device yet. Tap <b>Create Series</b> to get started.</div>"
-    exit 0
-fi
-
-for SID in $SERIES_IDS; do
-    S_KEY=$(echo "$SID" | sed 's/urn:collection:1:asin-//')
-    TITLE=$(sqlite3 "$DB" "SELECT p_titles_0_nominal FROM Entries WHERE p_cdeKey='$S_KEY' AND p_type='Entry:Item:Series';")
-    COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_seriesId='$SID';")
-
-    FIRST_KEY=$(sqlite3 "$DB" "SELECT d_itemCdeKey FROM Series WHERE d_seriesId='$SID' ORDER BY d_itemPosition LIMIT 1;")
-
-    if [ -z "$TITLE" ]; then
-        TITLE="$S_KEY"
-    fi
-
-    echo "<div class='card'>"
-    echo "<div class='card-header'>"
-    echo "<div><span class='card-title'>$TITLE</span> <span class='card-subtitle'>$COUNT books</span></div>"
-    echo "<div style='display:flex;gap:8px;'><button class='btn btn-toggle' onclick='toggleCard(this)'>Show</button><button class='btn' onclick=\"editSeries('$SID')\">Edit</button><button class='btn btn-danger' onclick=\"removeSeries('$SID')\">Remove</button></div>"
-    echo "</div>"
-
-    echo "<div class='card-body' style='display:none;'>"
-    echo "<div class='card-body-inner'>"
-    if [ -n "$FIRST_KEY" ]; then
-        echo "<img class='series-thumb' src='/cgi-bin/book_thumb.cgi?key=$FIRST_KEY' alt='' onerror='this.style.display=\"none\"'>"
-    fi
-    echo "<div class='series-books'>"
-    sqlite3 "$DB" "SELECT '<div class=\"book-item\"><span class=\"book-num\">' || d_itemPositionLabel || '</span>' || COALESCE((SELECT p_titles_0_nominal FROM Entries WHERE p_cdeKey=d_itemCdeKey AND p_type='Entry:Item' LIMIT 1), '(unknown)') || '</div>' FROM Series WHERE d_seriesId='$SID' ORDER BY d_itemPosition;"
-    echo "</div>"
-    echo "</div>"
-    echo "</div>"
-
-    echo "</div>"
-done
+sqlite3 "$DB" "
+SELECT
+    s.d_seriesId,
+    COALESCE(e_series.p_titles_0_nominal, REPLACE(s.d_seriesId, 'urn:collection:1:asin-', '')),
+    s.d_itemPositionLabel,
+    COALESCE(e_book.p_titles_0_nominal, '(unknown)'),
+    s.d_itemCdeKey
+FROM Series s
+LEFT JOIN Entries e_book ON e_book.p_cdeKey = s.d_itemCdeKey AND e_book.p_type = 'Entry:Item'
+LEFT JOIN Entries e_series ON e_series.p_cdeKey = REPLACE(s.d_seriesId, 'urn:collection:1:asin-', '') AND e_series.p_type = 'Entry:Item:Series'
+ORDER BY COALESCE(e_series.p_titles_0_nominal, s.d_seriesId), s.d_itemPosition;
+" | awk -F'|' '
+function hesc(s) { gsub(/&/,"\\&amp;",s); gsub(/</,"\\&lt;",s); gsub(/>/,"\\&gt;",s); return s }
+function emit() {
+    if (n == 0) return
+    sid = save_sid; gsub(/"/, "\\&quot;", sid)
+    print "<div class=\"card\"><div class=\"card-header\">"
+    print "<div><span class=\"card-title\">" hesc(save_title) "</span> <span class=\"card-subtitle\">" n " books</span></div>"
+    print "<div style=\"display:flex;gap:8px;\"><button class=\"btn btn-toggle\" onclick=\"toggleCard(this)\">Show</button><button class=\"btn\" onclick=\"editSeries(\x27" save_sid "\x27)\">Edit</button><button class=\"btn btn-danger\" onclick=\"removeSeries(\x27" save_sid "\x27)\">Remove</button></div>"
+    print "</div><div class=\"card-body\" style=\"display:none;\"><div class=\"card-body-inner\">"
+    if (save_fk != "") print "<img class=\"series-thumb\" src=\"/cgi-bin/book_thumb.cgi?key=" save_fk "\" alt=\"\" onerror=\"this.style.display=&quot;none&quot;\">"
+    print "<div class=\"series-books\">"
+    printf "%s", book_html
+    print "</div></div></div></div>"
+}
+BEGIN { n = 0; cur = "" }
+{
+    if ($1 != cur) {
+        emit()
+        cur = $1; save_sid = $1; save_title = $2; save_fk = $5; n = 0; book_html = ""
+    }
+    n++
+    book_html = book_html "<div class=\"book-item\"><span class=\"book-num\">" hesc($3) "</span>" hesc($4) "</div>"
+}
+END {
+    emit()
+    if (n == 0 && cur == "") print "<div class=\"empty-state\">No series on device yet. Tap <b>Create Series</b> to get started.</div>"
+}'
