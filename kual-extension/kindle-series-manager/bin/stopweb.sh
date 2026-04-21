@@ -75,6 +75,13 @@ cat > "$EXT_DIR/menu.json" << 'EOF'
           "refresh": true,
           "exitmenu": false,
           "if": "\"/tmp/fbink_ss_daemon.pid\" -f !"
+        },
+        {
+          "name": "Check for Updates",
+          "priority": 10,
+          "action": "bin/update_check.sh",
+          "refresh": true,
+          "exitmenu": false
         }
       ]
     }

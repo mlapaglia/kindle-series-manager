@@ -35,13 +35,15 @@ echo "========================================"
 echo "  Release Package Validation"
 echo "========================================"
 zip -r /tmp/test-package.zip . -x '.git/*' '.github/*' '.venv/*' '__pycache__/*' '*.pyc' > /dev/null
+set +o pipefail
 PKG_LIST=$(unzip -l /tmp/test-package.zip)
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/config.xml"
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/menu.json"
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/bin/webapp.sh"
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/www/index.html"
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/www/cgi-bin/create.cgi"
-echo "$PKG_LIST" | grep -q "kual-extension/kindle-series-manager/bin/fbink_ss_daemon.sh"
+check_pkg() { echo "$PKG_LIST" | grep -q "$1"; }
+check_pkg "kual-extension/kindle-series-manager/config.xml"
+check_pkg "kual-extension/kindle-series-manager/menu.json"
+check_pkg "kual-extension/kindle-series-manager/bin/webapp.sh"
+check_pkg "kual-extension/kindle-series-manager/www/index.html"
+check_pkg "kual-extension/kindle-series-manager/www/cgi-bin/create.cgi"
+check_pkg "kual-extension/kindle-series-manager/bin/fbink_ss_daemon.sh"
 rm -f /tmp/test-package.zip
 echo "  Package structure OK"
 
