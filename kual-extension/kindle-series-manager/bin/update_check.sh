@@ -9,7 +9,7 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [check] $1" >> "$LOG"
 }
 
-CURRENT=$(cat "$EXT_DIR/VERSION" 2>/dev/null | tr -d '\r\n')
+CURRENT=$(tr -d '\r\n' < "$EXT_DIR/VERSION" 2>/dev/null)
 if [ -z "$CURRENT" ]; then
     CURRENT="unknown"
 fi

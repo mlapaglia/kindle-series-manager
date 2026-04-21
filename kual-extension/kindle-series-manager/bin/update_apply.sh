@@ -88,7 +88,7 @@ chmod +x "$EXT_DIR/www/cgi-bin/"*.cgi 2>/dev/null
 
 rm -rf "$TMPDIR"
 
-NEW_VER=$(cat "$EXT_DIR/VERSION" 2>/dev/null | tr -d '\r\n')
+NEW_VER=$(tr -d '\r\n' < "$EXT_DIR/VERSION" 2>/dev/null)
 log "Update complete. VERSION file: $NEW_VER"
 
 eips -c
