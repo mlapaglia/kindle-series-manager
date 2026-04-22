@@ -2,8 +2,9 @@
 echo "Content-Type: text/html"
 echo ""
 
-SS_DIR="/usr/share/blanket/screensaver"
-DISABLED_DIR="/mnt/us/screensaver_disabled"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
+DISABLED_DIR="$EXT_DIR/screensavers/disabled"
 
 html_escape() {
     echo "$1" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g'

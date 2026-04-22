@@ -2,8 +2,9 @@
 echo "Content-Type: text/plain"
 echo ""
 
-SS_DIR="/usr/share/blanket/screensaver"
-DISABLED_DIR="/mnt/us/screensaver_disabled"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
+DISABLED_DIR="$EXT_DIR/screensavers/disabled"
 
 read -r POST_BODY
 NAME=$(echo "$POST_BODY" | sed 's/name=//;s/&.*//')
@@ -25,7 +26,7 @@ while [ -f "$SS_DIR/bg_ss$(printf '%02d' $NEXT_NUM).png" ]; do
 done
 NEW_NAME="bg_ss$(printf '%02d' $NEXT_NUM).png"
 
-mntroot rw
+mkdir -p "$SS_DIR"
 mv "$DISABLED_DIR/$NAME" "$SS_DIR/$NEW_NAME"
 
 if [ -f "$SS_DIR/$NEW_NAME" ]; then
