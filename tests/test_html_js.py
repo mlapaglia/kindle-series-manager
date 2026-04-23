@@ -139,3 +139,24 @@ class TestHideInSeriesFilter:
     def test_books_cgi_query_joins_series_table(self, books_cgi):
         assert "FROM Series" in books_cgi
         assert "GROUP_CONCAT" in books_cgi
+
+
+class TestAuthorSearch:
+    def test_books_cgi_emits_data_author_attr(self, books_cgi):
+        assert "data-author=" in books_cgi
+
+    def test_books_cgi_query_includes_author(self, books_cgi):
+        assert "p_credits_0_name_collation" in books_cgi
+
+    def test_books_cgi_emits_author_label(self, books_cgi):
+        assert "avail-author-label" in books_cgi
+
+    def test_filterbooks_checks_author(self, html):
+        js = re.search(r"<script>(.*?)</script>", html, re.DOTALL).group(1)
+        assert "data-author" in js
+
+    def test_css_has_author_label_style(self, html):
+        assert ".avail-author-label" in html
+
+    def test_filter_placeholder_mentions_author(self, books_cgi):
+        assert "author" in books_cgi.lower()

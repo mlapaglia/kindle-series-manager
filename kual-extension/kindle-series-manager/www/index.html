@@ -335,6 +335,12 @@ body {
   pointer-events: none;
   text-decoration: line-through;
 }
+.avail-author-label {
+  display: block;
+  font-size: 11px;
+  color: var(--fg-muted);
+  line-height: 1.3;
+}
 .avail-series-label {
   display: block;
   font-size: 11px;
@@ -633,8 +639,9 @@ function filterBooks() {
   var items = document.querySelectorAll('.avail-book');
   for (var i = 0; i < items.length; i++) {
     var title = items[i].getAttribute('data-title').toLowerCase();
+    var author = (items[i].getAttribute('data-author') || '').toLowerCase();
     var series = items[i].getAttribute('data-series');
-    var matchesFilter = title.indexOf(q) >= 0;
+    var matchesFilter = title.indexOf(q) >= 0 || author.indexOf(q) >= 0;
     var hiddenBySeries = hideSeries && series;
     items[i].style.display = (matchesFilter && !hiddenBySeries) ? '' : 'none';
   }
