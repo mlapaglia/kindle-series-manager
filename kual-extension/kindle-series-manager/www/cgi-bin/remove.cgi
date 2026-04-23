@@ -12,11 +12,18 @@ if [ -z "$SERIES_ID" ]; then
     exit 0
 fi
 
-S_CDE_KEY=$(echo "$SERIES_ID" | sed 's/urn:collection:1:asin-//')
-COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_seriesId='$SERIES_ID';")
+escape_sql() {
+    echo "$1" | sed "s/'/''/g"
+}
+
+S_CDE_KEY=$(echo "$SERIES_ID" | sed 's/^urn:collection:1:asin-//')
+ESC_SERIES_ID=$(escape_sql "$SERIES_ID")
+ESC_S_CDE_KEY=$(escape_sql "$S_CDE_KEY")
+
+COUNT=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_seriesId='$ESC_SERIES_ID';")
 
 if [ "$COUNT" -eq 0 ] 2>/dev/null; then
-    ORPHAN=$(sqlite3 "$DB" "SELECT p_uuid FROM Entries WHERE p_cdeKey='$S_CDE_KEY' AND p_type='Entry:Item:Series';")
+    ORPHAN=$(sqlite3 "$DB" "SELECT 1 FROM Entries WHERE p_cdeKey='$ESC_S_CDE_KEY' AND p_type='Entry:Item:Series' LIMIT 1;")
     if [ -z "$ORPHAN" ]; then
         echo "Error: series not found"
         exit 0
@@ -26,7 +33,7 @@ if [ "$COUNT" -eq 0 ] 2>/dev/null; then
     stop com.lab126.ccat 2>/dev/null
 
     sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(sql, ' COLLATE icu', '') WHERE type='table' AND name='Entries'; DROP INDEX IF EXISTS EntriesCredit0CollationIndex; DROP INDEX IF EXISTS EntriesTitles0Index; PRAGMA writable_schema=OFF;"
-    sqlite3 "$DB" "DELETE FROM Entries WHERE p_cdeKey='$S_CDE_KEY' AND p_type='Entry:Item:Series';"
+    sqlite3 "$DB" "DELETE FROM Entries WHERE p_cdeKey='$ESC_S_CDE_KEY' AND p_type='Entry:Item:Series';"
     sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(REPLACE(sql, 'p_titles_0_collation,', 'p_titles_0_collation COLLATE icu,'), 'p_credits_0_name_collation,', 'p_credits_0_name_collation COLLATE icu,') WHERE type='table' AND name='Entries'; PRAGMA writable_schema=OFF;"
 
     start com.lab126.ccat 2>/dev/null
@@ -40,8 +47,8 @@ mntroot rw
 
 stop com.lab126.ccat 2>/dev/null
 
-MEMBER_KEYS=$(sqlite3 "$DB" "SELECT d_itemCdeKey FROM Series WHERE d_seriesId='$SERIES_ID';")
-sqlite3 "$DB" "DELETE FROM Series WHERE d_seriesId='$SERIES_ID';"
+MEMBER_KEYS=$(sqlite3 "$DB" "SELECT d_itemCdeKey FROM Series WHERE d_seriesId='$ESC_SERIES_ID';")
+sqlite3 "$DB" "DELETE FROM Series WHERE d_seriesId='$ESC_SERIES_ID';"
 
 for KEY in $MEMBER_KEYS; do
     REMAINING=$(sqlite3 "$DB" "SELECT COUNT(*) FROM Series WHERE d_itemCdeKey='$KEY';")
@@ -52,7 +59,7 @@ done
 
 sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(sql, ' COLLATE icu', '') WHERE type='table' AND name='Entries'; DROP INDEX IF EXISTS EntriesCredit0CollationIndex; DROP INDEX IF EXISTS EntriesTitles0Index; PRAGMA writable_schema=OFF;"
 
-sqlite3 "$DB" "DELETE FROM Entries WHERE p_cdeKey='$S_CDE_KEY' AND p_type='Entry:Item:Series';"
+sqlite3 "$DB" "DELETE FROM Entries WHERE p_cdeKey='$ESC_S_CDE_KEY' AND p_type='Entry:Item:Series';"
 
 sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(REPLACE(sql, 'p_titles_0_collation,', 'p_titles_0_collation COLLATE icu,'), 'p_credits_0_name_collation,', 'p_credits_0_name_collation COLLATE icu,') WHERE type='table' AND name='Entries'; PRAGMA writable_schema=OFF;"
 

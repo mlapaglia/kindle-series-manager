@@ -20,8 +20,9 @@ fi
 
 DB="${DB:-/var/local/cc.db}"
 
-TMP_MAIN="/tmp/ksm_series_main_$$.html"
-TMP_ORPHAN="/tmp/ksm_series_orphan_$$.html"
+TMP_MAIN=$(mktemp /tmp/ksm_series_main_XXXXXX.html) || exit 1
+TMP_ORPHAN=$(mktemp /tmp/ksm_series_orphan_XXXXXX.html) || { rm -f "$TMP_MAIN"; exit 1; }
+trap 'rm -f "$TMP_MAIN" "$TMP_ORPHAN"' EXIT
 
 sqlite3 "$DB" "
 SELECT
@@ -91,5 +92,3 @@ else
     cat "$TMP_MAIN"
     cat "$TMP_ORPHAN"
 fi
-
-rm -f "$TMP_MAIN" "$TMP_ORPHAN"
