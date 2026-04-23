@@ -20,6 +20,9 @@ fi
 
 DB="${DB:-/var/local/cc.db}"
 
+TMP_MAIN="/tmp/ksm_series_main_$$.html"
+TMP_ORPHAN="/tmp/ksm_series_orphan_$$.html"
+
 sqlite3 "$DB" "
 SELECT
     s.d_seriesId,
@@ -54,7 +57,39 @@ BEGIN { n = 0; cur = "" }
     n++
     book_html = book_html "<div class=\"book-item\"><span class=\"book-num\">" hesc($3) "</span>" hesc($4) "</div>"
 }
-END {
-    emit()
-    if (n == 0 && cur == "") print "<div class=\"empty-state\">No series on device yet. Tap <b>Create Series</b> to get started.</div>"
-}'
+END { emit() }
+' > "$TMP_MAIN"
+
+sqlite3 "$DB" "
+SELECT e.p_cdeKey, e.p_titles_0_nominal, e.p_memberCount
+FROM Entries e
+WHERE e.p_type='Entry:Item:Series'
+AND NOT EXISTS (
+    SELECT 1 FROM Series s
+    WHERE s.d_seriesId = 'urn:collection:1:asin-' || e.p_cdeKey
+);
+" | awk -F'|' '
+function hesc(s) { gsub(/&/,"\\&amp;",s); gsub(/</,"\\&lt;",s); gsub(/>/,"\\&gt;",s); return s }
+{
+    seriesId = "urn:collection:1:asin-" $1
+    gsub(/"/, "\\&quot;", seriesId)
+    print "<div class=\"card\" style=\"border-left:3px solid #c0392b;\">"
+    print "<div class=\"card-header\">"
+    print "<div><span class=\"card-title\">" hesc($2) "</span> <span class=\"card-subtitle\" style=\"color:#c0392b;\">Orphaned entry &mdash; no book links in database</span></div>"
+    print "<div style=\"display:flex;gap:8px;\"><button class=\"btn btn-danger\" onclick=\"removeSeries(\x27" seriesId "\x27)\">Clean Up</button></div>"
+    print "</div>"
+    print "<div style=\"padding:8px 16px 12px;font-size:13px;color:var(--fg-muted);\">"
+    print "This series container exists in the Kindle database but has no books linked to it (claims " $3 " members). "
+    print "It will appear as an empty series on the device. Cleaning up removes the orphaned container entry."
+    print "</div></div>"
+}
+' > "$TMP_ORPHAN"
+
+if [ ! -s "$TMP_MAIN" ] && [ ! -s "$TMP_ORPHAN" ]; then
+    echo "<div class='empty-state'>No series on device yet. Tap <b>Create Series</b> to get started.</div>"
+else
+    cat "$TMP_MAIN"
+    cat "$TMP_ORPHAN"
+fi
+
+rm -f "$TMP_MAIN" "$TMP_ORPHAN"
