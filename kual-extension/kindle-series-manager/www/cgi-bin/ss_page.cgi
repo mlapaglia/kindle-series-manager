@@ -5,6 +5,7 @@ echo ""
 EXT_DIR="/mnt/us/extensions/kindle-series-manager"
 SS_DIR="$EXT_DIR/screensavers"
 DISABLED_DIR="$EXT_DIR/screensavers/disabled"
+mkdir -p "$SS_DIR" "$DISABLED_DIR"
 
 html_escape() {
     echo "$1" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g'
