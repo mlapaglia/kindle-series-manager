@@ -251,7 +251,8 @@ class TestBooksSeriesQuery:
         "COALESCE((SELECT p_titles_0_nominal FROM Entries e2 "
         "WHERE e2.p_cdeKey=REPLACE(s.d_seriesId,'urn:collection:1:asin-','') "
         "AND e2.p_type='Entry:Item:Series'), '?'), ', ') "
-        "FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), '') "
+        "FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), ''), "
+        "COALESCE(p_credits_0_name_collation, '') "
         "FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 "
         "AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal"
     )
@@ -261,7 +262,7 @@ class TestBooksSeriesQuery:
         rows = conn.execute(self.BOOKS_QUERY).fetchall()
         conn.close()
         assert len(rows) == 5
-        for _key, _title, series in rows:
+        for _key, _title, series, _author in rows:
             assert series == ""
 
     def test_books_in_series_return_series_name(self, test_db):
@@ -274,7 +275,7 @@ class TestBooksSeriesQuery:
         rows = conn.execute(self.BOOKS_QUERY).fetchall()
         conn.close()
 
-        result = {key: series for key, _title, series in rows}
+        result = {key: series for key, _title, series, _author in rows}
         assert result["B08BKGYQXW"] == "Dungeon Crawler Carl"
         assert result["B08PBCD9Y7"] == "Dungeon Crawler Carl"
         assert result["B08V4QSV6W"] == "Dungeon Crawler Carl"
@@ -296,12 +297,21 @@ class TestBooksSeriesQuery:
         rows = conn.execute(self.BOOKS_QUERY).fetchall()
         conn.close()
 
-        result = {key: series for key, _title, series in rows}
+        result = {key: series for key, _title, series, _author in rows}
         parts = set(result["B08BKGYQXW"].split(", "))
         assert parts == {"Series A", "Series B"}
         assert result["B08PBCD9Y7"] == "Series A"
         assert result["B08V4QSV6W"] == "Series B"
         assert result["B071GN8Y4G"] == ""
+
+    def test_query_returns_author(self, test_db):
+        conn = sqlite3.connect(str(test_db))
+        rows = conn.execute(self.BOOKS_QUERY).fetchall()
+        conn.close()
+
+        result = {key: author for key, _title, _series, author in rows}
+        assert result["B08BKGYQXW"] == "Matt Dinniman"
+        assert result["B071GN8Y4G"] == "Jason Anspach"
 
 
 class TestMissingDb:

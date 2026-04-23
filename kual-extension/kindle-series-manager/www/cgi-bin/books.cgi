@@ -44,18 +44,21 @@ echo "</div>"
 
 echo "<div>"
 echo "<div class='panel-header'>Available Books</div>"
-echo "<input type='text' id='bookFilter' class='input-field input-small' placeholder='Filter...' oninput='filterBooks()'>"
+echo "<input type='text' id='bookFilter' class='input-field input-small' placeholder='Filter by title or author...' oninput='filterBooks()'>"
 echo "<label style='display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-muted);margin-bottom:8px;cursor:pointer;user-select:none;'><input type='checkbox' id='hideInSeries' onchange='filterBooks()'> Hide books already in a series</label>"
 echo "<div class='avail-list'>"
 
-sqlite3 "$DB" "SELECT p_cdeKey || '	' || p_titles_0_nominal || '	' || COALESCE((SELECT GROUP_CONCAT(COALESCE((SELECT p_titles_0_nominal FROM Entries e2 WHERE e2.p_cdeKey=REPLACE(s.d_seriesId,'urn:collection:1:asin-','') AND e2.p_type='Entry:Item:Series'), '?'), ', ') FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), '') FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal;" | awk -F'	' '
+sqlite3 "$DB" "SELECT p_cdeKey || '	' || p_titles_0_nominal || '	' || COALESCE((SELECT GROUP_CONCAT(COALESCE((SELECT p_titles_0_nominal FROM Entries e2 WHERE e2.p_cdeKey=REPLACE(s.d_seriesId,'urn:collection:1:asin-','') AND e2.p_type='Entry:Item:Series'), '?'), ', ') FROM Series s WHERE s.d_itemCdeKey=Entries.p_cdeKey), '') || '	' || COALESCE(p_credits_0_name_collation, '') FROM Entries WHERE p_type='Entry:Item' AND p_isVisibleInHome=1 AND p_location LIKE '/mnt/us/documents/%' ORDER BY p_titles_0_nominal;" | awk -F'	' '
 function hesc(s) { gsub(/&/,"\\&amp;",s); gsub(/</,"\\&lt;",s); gsub(/>/,"\\&gt;",s); gsub(/"/,"\\&quot;",s); gsub(/'\''/,"\\&#39;",s); return s }
 {
-    key = hesc($1); title = hesc($2); series = hesc($3)
-    if (series != "") {
-        printf "<div class=\"avail-book in-series\" data-key=\"%s\" data-title=\"%s\" data-series=\"%s\" onclick=\"addBook(this)\">%s<span class=\"avail-series-label\">%s</span></div>\n", key, title, series, title, series
+    key = hesc($1); title = hesc($2); series = hesc($3); author = hesc($4)
+    meta = ""
+    if (author != "") meta = "<span class=\"avail-author-label\">" author "</span>"
+    if (series != "") meta = meta "<span class=\"avail-series-label\">" series "</span>"
+    if (meta != "") {
+        printf "<div class=\"avail-book%s\" data-key=\"%s\" data-title=\"%s\" data-author=\"%s\" data-series=\"%s\" onclick=\"addBook(this)\">%s%s</div>\n", (series != "" ? " in-series" : ""), key, title, author, series, title, meta
     } else {
-        printf "<div class=\"avail-book\" data-key=\"%s\" data-title=\"%s\" data-series=\"\" onclick=\"addBook(this)\">%s</div>\n", key, title, title
+        printf "<div class=\"avail-book\" data-key=\"%s\" data-title=\"%s\" data-author=\"\" data-series=\"\" onclick=\"addBook(this)\">%s</div>\n", key, title, title
     }
 }'
 

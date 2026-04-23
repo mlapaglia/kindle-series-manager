@@ -2,8 +2,9 @@
 echo "Content-Type: text/plain"
 echo ""
 
-SS_DIR="/usr/share/blanket/screensaver"
-DISABLED_DIR="/mnt/us/screensaver_disabled"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
+DISABLED_DIR="$EXT_DIR/screensavers/disabled"
 
 read -r POST_BODY
 NAME=$(echo "$POST_BODY" | sed 's/.*name=//;s/&.*//')
@@ -29,7 +30,6 @@ if [ ! -f "$FILE" ]; then
     exit 0
 fi
 
-mntroot rw
 rm -f "$FILE"
 
 if [ ! -f "$FILE" ]; then

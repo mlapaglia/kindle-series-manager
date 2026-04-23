@@ -1,7 +1,8 @@
 #!/bin/sh
 
-SS_DIR="/usr/share/blanket/screensaver"
-DISABLED_DIR="/mnt/us/screensaver_disabled"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
+DISABLED_DIR="$EXT_DIR/screensavers/disabled"
 
 NAME=$(echo "$QUERY_STRING" | sed 's/.*name=//;s/&.*//')
 SRC=$(echo "$QUERY_STRING" | sed 's/.*src=//;s/&.*//')

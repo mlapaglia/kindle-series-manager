@@ -2,8 +2,9 @@
 echo "Content-Type: text/plain"
 echo ""
 
-SS_DIR="/usr/share/blanket/screensaver"
-DISABLED_DIR="/mnt/us/screensaver_disabled"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
+DISABLED_DIR="$EXT_DIR/screensavers/disabled"
 
 read -r POST_BODY
 NAME=$(echo "$POST_BODY" | sed 's/name=//;s/&.*//')
@@ -20,7 +21,6 @@ if [ ! -f "$SS_DIR/$NAME" ]; then
 fi
 
 mkdir -p "$DISABLED_DIR"
-mntroot rw
 mv "$SS_DIR/$NAME" "$DISABLED_DIR/$NAME"
 
 if [ -f "$DISABLED_DIR/$NAME" ]; then

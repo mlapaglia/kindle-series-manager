@@ -13,8 +13,10 @@ fi
 PIDFILE="/tmp/fbink_ss_daemon.pid"
 SHIELD_PIDFILE="/tmp/ss_shield.pid"
 LOG="$EXT_DIR/fbink_ss.log"
-SS_DIR="/usr/share/blanket/screensaver"
+SS_DIR="$EXT_DIR/screensavers"
 STATE_FILE="/tmp/fbink_ss_last"
+
+mkdir -p "$SS_DIR"
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG"

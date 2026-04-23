@@ -2,7 +2,8 @@
 echo "Content-Type: text/plain"
 echo ""
 
-SS_DIR="/usr/share/blanket/screensaver"
+EXT_DIR="/mnt/us/extensions/kindle-series-manager"
+SS_DIR="$EXT_DIR/screensavers"
 
 if [ -z "$CONTENT_LENGTH" ] || [ "$CONTENT_LENGTH" = "0" ]; then
     echo "Error: no image data received"
@@ -31,8 +32,7 @@ while [ -f "$SS_DIR/bg_ss$(printf '%02d' $NEXT_NUM).png" ]; do
 done
 FNAME="bg_ss$(printf '%02d' $NEXT_NUM).png"
 
-mntroot rw
-
+mkdir -p "$SS_DIR"
 cp "$TMPFILE" "$SS_DIR/$FNAME"
 rm -f "$TMPFILE"
 
