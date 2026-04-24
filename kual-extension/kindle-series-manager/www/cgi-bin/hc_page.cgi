@@ -39,6 +39,7 @@ echo "<div class='card-header'><span class='card-title'>Hardcover API Token</spa
 echo "<p style='font-size:13px;color:var(--fg-muted);margin:0 0 8px 0;'>Get your token from <strong>hardcover.app &rarr; Settings &rarr; API</strong></p>"
 echo "<input type='password' id='hcToken' class='input-field input-small' placeholder='Paste your Hardcover API token'>"
 echo "<button class='btn' onclick='hcSaveToken()' style='margin-right:8px;'>Save Token</button>"
+echo "<button class='btn btn-secondary' onclick='hcTestToken()' style='margin-right:8px;'>Test</button>"
 if [ "$TOKEN_SET" = "true" ]; then
     echo "<span id='hcTokenStatus' style='font-size:13px;color:#27ae60;'>Token configured</span>"
 else
@@ -55,15 +56,19 @@ echo "<pre id='hcMappingOutput' style='margin-top:8px;font-size:12px;max-height:
 echo "<div id='hcMappingTable'>"
 if [ -f "$MAPPING_FILE" ]; then
     echo "<table style='width:100%;font-size:13px;border-collapse:collapse;margin-top:8px;'>"
-    echo "<tr style='text-align:left;border-bottom:2px solid var(--border);'><th style='padding:6px;'>Kindle Title</th><th style='padding:6px;'>Hardcover Title</th><th style='padding:6px;'>HC ID</th></tr>"
+    echo "<tr style='text-align:left;border-bottom:2px solid var(--border);'><th style='padding:6px;'>Kindle Title</th><th style='padding:6px;'>Hardcover Title</th><th style='padding:6px;'>HC ID</th><th style='padding:6px;'>Pages</th><th style='padding:6px;'>Read ID</th></tr>"
     grep '"cdeKey"' "$MAPPING_FILE" | while read -r LINE; do
         K_TITLE=$(echo "$LINE" | grep -o '"kindleTitle":"[^"]*"' | sed 's/"kindleTitle":"//;s/"//')
         H_TITLE=$(echo "$LINE" | grep -o '"hcTitle":"[^"]*"' | sed 's/"hcTitle":"//;s/"//')
-        H_ID=$(echo "$LINE" | grep -o '"hcBookId":[0-9]*' | sed 's/"hcBookId"://')
+        H_ID=$(echo "$LINE" | grep -o '"hcBookId":"[^"]*"' | sed 's/"hcBookId":"//;s/"//')
+        H_PAGES=$(echo "$LINE" | grep -o '"hcPages":[0-9]*' | sed 's/"hcPages"://')
+        UBR_ID=$(echo "$LINE" | grep -o '"userBookReadId":[0-9]*' | sed 's/"userBookReadId"://')
         K_TITLE=$(html_escape "$K_TITLE")
         H_TITLE=$(html_escape "$H_TITLE")
         H_ID=$(html_escape "$H_ID")
-        echo "<tr style='border-bottom:1px solid var(--border-row);'><td style='padding:6px;'>$K_TITLE</td><td style='padding:6px;'>$H_TITLE</td><td style='padding:6px;'>$H_ID</td></tr>"
+        H_PAGES=$(html_escape "${H_PAGES:-—}")
+        UBR_ID=$(html_escape "${UBR_ID:-—}")
+        echo "<tr style='border-bottom:1px solid var(--border-row);'><td style='padding:6px;'>$K_TITLE</td><td style='padding:6px;'>$H_TITLE</td><td style='padding:6px;'>$H_ID</td><td style='padding:6px;'>$H_PAGES</td><td style='padding:6px;'>$UBR_ID</td></tr>"
     done
     echo "</table>"
 else

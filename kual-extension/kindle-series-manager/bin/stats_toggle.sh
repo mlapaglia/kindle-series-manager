@@ -17,8 +17,9 @@ if [ -f "$FLAG_FILE" ]; then
 else
     touch "$FLAG_FILE"
 
-    if [ -f "$UPSTART_SRC" ] && [ ! -f "$UPSTART_DST" ]; then
+    if [ -f "$UPSTART_SRC" ]; then
         cp "$UPSTART_SRC" "$UPSTART_DST"
+        initctl reload-configuration 2>/dev/null
     fi
 
     start ksm-stats 2>/dev/null

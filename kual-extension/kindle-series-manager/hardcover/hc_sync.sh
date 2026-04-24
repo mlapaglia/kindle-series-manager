@@ -68,15 +68,23 @@ set_last_synced_percent() {
 }
 
 lookup_hc_book_id() {
-    grep "\"cdeKey\":\"$1\"" "$MAPPING_FILE" | grep -o '"hcBookId":[0-9]*' | sed 's/"hcBookId"://'
+    grep "\"cdeKey\":\"$1\"" "$MAPPING_FILE" | grep -o '"hcBookId":"[^"]*"' | sed 's/"hcBookId":"//;s/"//'
 }
 
 lookup_kindle_title() {
     grep "\"cdeKey\":\"$1\"" "$MAPPING_FILE" | grep -o '"kindleTitle":"[^"]*"' | sed 's/"kindleTitle":"//;s/"//'
 }
 
+lookup_hc_pages() {
+    grep "\"cdeKey\":\"$1\"" "$MAPPING_FILE" | grep -o '"hcPages":[0-9]*' | sed 's/"hcPages"://'
+}
+
+lookup_user_book_read_id() {
+    grep "\"cdeKey\":\"$1\"" "$MAPPING_FILE" | grep -o '"userBookReadId":[0-9]*' | sed 's/"userBookReadId"://'
+}
+
 check_and_sync() {
-    MOST_RECENT=$(sqlite3 "$DB" "SELECT p_cdeKey, p_percentFinished FROM Entries WHERE p_type='Entry:Item' AND p_location IS NOT NULL ORDER BY p_lastAccess DESC LIMIT 1;" 2>/dev/null)
+    MOST_RECENT=$(sqlite3 "$DB" "SELECT p_cdeKey, p_percentFinished FROM Entries WHERE p_type='Entry:Item' AND p_location IS NOT NULL AND p_location LIKE '/mnt/us/documents/%' AND p_isVisibleInHome=1 ORDER BY p_lastAccess DESC LIMIT 1;" 2>/dev/null)
 
     CDE_KEY=$(echo "$MOST_RECENT" | cut -d'|' -f1)
     CURRENT_PERCENT=$(echo "$MOST_RECENT" | cut -d'|' -f2)
@@ -107,10 +115,24 @@ check_and_sync() {
 
     log "Progress changed: $TITLE $LAST_PERCENT% -> $CURRENT_PERCENT_INT%"
 
-    # Convert percent to 0.0-1.0 float for Hardcover API
-    PROGRESS_FLOAT=$(awk "BEGIN {printf \"%.2f\", $CURRENT_PERCENT_INT / 100}")
+    # Look up page count and read record ID from mapping
+    HC_PAGES=$(lookup_hc_pages "$CDE_KEY")
+    UBR_ID=$(lookup_user_book_read_id "$CDE_KEY")
 
-    BODY="{\"query\":\"mutation { insert_user_book_read_one(object: { book_id: $HC_BOOK_ID, progress: $PROGRESS_FLOAT, started_at: \\\"now()\\\" }, on_conflict: { constraint: user_book_reads_pkey, update_columns: [progress] }) { id } }\"}"
+    if [ -z "$HC_PAGES" ] || [ "$HC_PAGES" = "0" ]; then
+        log "SKIPPED: $TITLE - no page count in mapping (re-run hc_build_mapping.sh)"
+        return
+    fi
+
+    if [ -z "$UBR_ID" ]; then
+        log "SKIPPED: $TITLE - no read record ID in mapping (re-run hc_build_mapping.sh)"
+        return
+    fi
+
+    # Convert Kindle percentage to pages
+    PROGRESS_PAGES=$(awk "BEGIN {printf \"%d\", $CURRENT_PERCENT_INT * $HC_PAGES / 100}")
+
+    BODY="{\"query\":\"mutation { update_user_book_read(id: $UBR_ID, object: { progress_pages: $PROGRESS_PAGES }) { id error } }\"}"
 
     TMPFILE="$SCRIPT_DIR/hc_response.tmp"
 

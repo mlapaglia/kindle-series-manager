@@ -1,21 +1,21 @@
 #!/bin/sh
 #
 # Push a reading progress update to Hardcover.
-# Usage: hc_update.sh <book_id> <progress_percent>
-#   book_id           Hardcover book ID (integer)
-#   progress_percent  Reading progress 0-100
+# Usage: hc_update.sh <user_book_read_id> <progress_pages>
+#   user_book_read_id  Hardcover user_book_read ID (from mapping)
+#   progress_pages     Number of pages read
 #
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG="$SCRIPT_DIR/hc_config.json"
 
-BOOK_ID="$1"
-PROGRESS="$2"
+UBR_ID="$1"
+PROGRESS_PAGES="$2"
 
-if [ -z "$BOOK_ID" ] || [ -z "$PROGRESS" ]; then
-    echo "Usage: hc_update.sh <book_id> <progress_percent>"
-    echo "  book_id           Hardcover book ID"
-    echo "  progress_percent  Reading progress 0-100"
+if [ -z "$UBR_ID" ] || [ -z "$PROGRESS_PAGES" ]; then
+    echo "Usage: hc_update.sh <user_book_read_id> <progress_pages>"
+    echo "  user_book_read_id  Hardcover user_book_read ID (from mapping)"
+    echo "  progress_pages     Number of pages read"
     exit 1
 fi
 
@@ -32,10 +32,7 @@ if [ -z "$TOKEN" ]; then
     exit 1
 fi
 
-# Convert percent to 0.0-1.0 float for Hardcover API
-PROGRESS_FLOAT=$(awk "BEGIN {printf \"%.2f\", $PROGRESS / 100}")
-
-BODY="{\"query\":\"mutation { insert_user_book_read_one(object: { book_id: $BOOK_ID, progress: $PROGRESS_FLOAT, started_at: \\\"now()\\\" }, on_conflict: { constraint: user_book_reads_pkey, update_columns: [progress] }) { id } }\"}"
+BODY="{\"query\":\"mutation { update_user_book_read(id: $UBR_ID, object: { progress_pages: $PROGRESS_PAGES }) { id error } }\"}"
 
 HTTP_CODE=$(curl -s -w "%{http_code}" -o "$SCRIPT_DIR/hc_response.tmp" \
     -X POST "$API_URL" \
