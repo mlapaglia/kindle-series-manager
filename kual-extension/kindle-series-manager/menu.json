@@ -28,6 +28,22 @@
           "if": "\"/mnt/us/ENABLE_GR_SYNC\" -f !"
         },
         {
+          "name": "Disable Hardcover Sync",
+          "priority": 1,
+          "action": "bin/hc_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_HC_SYNC\" -f"
+        },
+        {
+          "name": "Enable Hardcover Sync",
+          "priority": 1,
+          "action": "bin/hc_toggle.sh",
+          "refresh": true,
+          "exitmenu": false,
+          "if": "\"/mnt/us/ENABLE_HC_SYNC\" -f !"
+        },
+        {
           "name": "Backup Database",
           "priority": 2,
           "action": "bin/backup.sh",

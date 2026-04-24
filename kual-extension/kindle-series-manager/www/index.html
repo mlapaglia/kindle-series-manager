@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kindle Series Manager</title>
 <script src="png-codec.js"></script>
+<script src="collections.js"></script>
 <style>
 * { box-sizing: border-box; }
 :root {
@@ -732,13 +733,24 @@ function removeSeries(seriesId) {
     .catch(function(e) { setStatus('Error: ' + e); });
 }
 
-function loadProgress() {
+function loadSyncServices() {
   setActive('progress');
   setStatus('Loading...');
-  fetch('/cgi-bin/grpage.cgi')
-    .then(function(r) { return r.text(); })
-    .then(function(text) {
-      document.getElementById('content').innerHTML = text;
+  Promise.all([
+    fetch('/cgi-bin/grpage.cgi').then(function(r) { return r.text(); }),
+    fetch('/cgi-bin/hc_page.cgi').then(function(r) { return r.text(); })
+  ])
+    .then(function(results) {
+      var el = document.getElementById('content');
+      el.innerHTML =
+        '<div class="card" style="margin-bottom:16px;">'
+        + '<div class="card-header"><span class="card-title" style="font-size:18px;">Goodreads</span></div>'
+        + results[0]
+        + '</div>'
+        + '<div class="card" style="margin-bottom:16px;">'
+        + '<div class="card-header"><span class="card-title" style="font-size:18px;">Hardcover</span></div>'
+        + results[1]
+        + '</div>';
       setStatus('');
     })
     .catch(function(e) { setStatus('Error: ' + e); });
@@ -771,7 +783,7 @@ function grSaveCreds() {
 function grLogout() {
   fetch('/cgi-bin/gr_logout.cgi', { method: 'POST' })
     .then(function(r) { return r.text(); })
-    .then(function() { loadProgress(); })
+    .then(function() { loadSyncServices(); })
     .catch(function(e) { setStatus('Error: ' + e); });
 }
 
@@ -805,26 +817,117 @@ function grBuildMapping() {
     .then(function(r) { return r.text(); })
     .then(function(text) {
       el.textContent = text;
-      loadProgress();
+      loadSyncServices();
     })
     .catch(function(e) { el.textContent = 'Error: ' + e; });
 }
 
 function grRefreshStatus() {
-  loadProgress();
+  loadSyncServices();
+}
+
+function hcSaveToken() {
+  var token = document.getElementById('hcToken').value.trim();
+  var statusEl = document.getElementById('hcTokenStatus');
+
+  if (!token) {
+    statusEl.textContent = 'Token is required';
+    return;
+  }
+
+  statusEl.textContent = 'Saving...';
+  fetch('/cgi-bin/hc_savetoken.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'token=' + encodeURIComponent(token)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { statusEl.textContent = text; })
+    .catch(function(e) { statusEl.textContent = 'Error: ' + e; });
+}
+
+function hcBuildMapping() {
+  var el = document.getElementById('hcMappingOutput');
+  el.style.display = 'block';
+  el.textContent = 'Building mapping...';
+
+  fetch('/cgi-bin/hc_domapping.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: ''
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      el.textContent = text;
+      loadSyncServices();
+    })
+    .catch(function(e) { el.textContent = 'Error: ' + e; });
+}
+
+function hcRefreshStatus() {
+  loadSyncServices();
 }
 
 function loadScreensavers() {
   setActive('screensavers');
   setStatus('Loading...');
-  fetch('/cgi-bin/ss_page.cgi')
-    .then(function(r) { return r.text(); })
-    .then(function(text) {
-      document.getElementById('content').innerHTML = text;
-      setStatus('');
-      ssSetupDropZone();
-    })
-    .catch(function(e) { setStatus('Error: ' + e); });
+  Promise.all([
+    fetch('/cgi-bin/ss_page.cgi').then(function(r) { return r.text(); }),
+    fetch('/cgi-bin/ss_settings_section.cgi').then(function(r) { return r.text(); }),
+    fetch('/cgi-bin/ss_config.cgi').then(function(r) { return r.json(); })
+  ])
+  .then(function(results) {
+    var pageHtml = results[0];
+    var settingsHtml = results[1];
+    var config = results[2];
+    document.getElementById('content').innerHTML = settingsHtml + pageHtml;
+    setStatus('');
+    ssApplyConfig(config);
+    ssSetupDropZone();
+  })
+  .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function ssApplyConfig(config) {
+  if (!config) return;
+  var modeRadio = document.querySelector('input[name="ssMode"][value="' + config.mode + '"]');
+  if (modeRadio) modeRadio.checked = true;
+  var orderRadio = document.querySelector('input[name="ssOrder"][value="' + config.order + '"]');
+  if (orderRadio) orderRadio.checked = true;
+  var ratioSlider = document.getElementById('ssMixedRatio');
+  var ratioLabel = document.getElementById('ssMixedRatioLabel');
+  if (ratioSlider && config.mixed_ratio !== undefined) {
+    ratioSlider.value = config.mixed_ratio;
+    if (ratioLabel) ratioLabel.textContent = config.mixed_ratio;
+  }
+  ssUpdateModeUI();
+}
+
+function ssSaveSettings() {
+  var mode = document.querySelector('input[name="ssMode"]:checked');
+  var order = document.querySelector('input[name="ssOrder"]:checked');
+  var ratio = document.getElementById('ssMixedRatio');
+  if (!mode || !order) return;
+  var statusEl = document.getElementById('ssSettingsStatus');
+  statusEl.textContent = 'Saving...';
+  fetch('/cgi-bin/ss_config.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'mode=' + encodeURIComponent(mode.value)
+        + '&order=' + encodeURIComponent(order.value)
+        + '&mixed_ratio=' + encodeURIComponent(ratio ? ratio.value : '50')
+  })
+  .then(function(r) { return r.text(); })
+  .then(function(text) { statusEl.textContent = text; })
+  .catch(function(e) { statusEl.textContent = 'Error: ' + e; });
+}
+
+function ssUpdateModeUI() {
+  var mode = document.querySelector('input[name="ssMode"]:checked');
+  var ratioSection = document.getElementById('ssMixedRatioSection');
+  if (ratioSection) {
+    ratioSection.style.display = (mode && mode.value === 'mixed') ? '' : 'none';
+  }
 }
 
 function ssModelChanged(sel) {
@@ -1871,11 +1974,136 @@ function calRefreshLibrary(doneCount, errCount) {
   calApplyFilter();
 }
 
+function loadFonts() {
+  setActive('fonts');
+  setStatus('Loading...');
+  fetch('/cgi-bin/font_page.cgi')
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      document.getElementById('content').innerHTML = text;
+      setStatus('');
+      fontSetupDropZone();
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function fontSetupDropZone() {
+  var zone = document.getElementById('fontDropZone');
+  var fileInput = document.getElementById('fontFileInput');
+  if (!zone || !fileInput) return;
+
+  zone.addEventListener('click', function() { fileInput.click(); });
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--accent)';
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.style.borderColor = 'var(--input-border)';
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--input-border)';
+    if (e.dataTransfer.files.length > 0) fontProcessFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length > 0) fontProcessFile(fileInput.files[0]);
+  });
+}
+
+function fontProcessFile(file) {
+  var statusEl = document.getElementById('fontUploadStatus');
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (['ttf', 'otf', 'ttc'].indexOf(ext) === -1) {
+    statusEl.textContent = 'Unsupported format. Use .ttf, .otf, or .ttc files.';
+    return;
+  }
+  if (file.size > 104857600) {
+    statusEl.textContent = 'File too large (max 100MB).';
+    return;
+  }
+  statusEl.textContent = 'Validating font...';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var bytes = new Uint8Array(e.target.result.slice(0, 4));
+    var magic = '';
+    for (var i = 0; i < bytes.length; i++) {
+      magic += ('0' + bytes[i].toString(16)).slice(-2);
+    }
+    if (['00010000', '74727565', '4f54544f', '74746366'].indexOf(magic) === -1) {
+      statusEl.textContent = 'Not a valid font file.';
+      return;
+    }
+    fontUpload(file);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function fontUpload(file) {
+  var statusEl = document.getElementById('fontUploadStatus');
+  statusEl.textContent = 'Reading file...';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    statusEl.textContent = 'Uploading ' + escapeHtml(file.name) + '...';
+    fetch('/cgi-bin/font_upload.cgi?name=' + encodeURIComponent(file.name), {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain'},
+      body: base64
+    })
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        statusEl.textContent = text;
+        loadFonts();
+      })
+      .catch(function(err) { statusEl.textContent = 'Error: ' + err; });
+  };
+  reader.readAsDataURL(file);
+}
+
+function fontEnable(name) {
+  setStatus('Enabling...');
+  fetch('/cgi-bin/font_enable.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadFonts(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function fontDisable(name) {
+  setStatus('Disabling...');
+  fetch('/cgi-bin/font_disable.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadFonts(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function fontDelete(src, name) {
+  if (!confirm('Permanently delete ' + name + '?')) return;
+  setStatus('Deleting...');
+  fetch('/cgi-bin/font_delete.cgi', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'src=' + encodeURIComponent(src) + '&name=' + encodeURIComponent(name)
+  })
+    .then(function(r) { return r.text(); })
+    .then(function(text) { setStatus(text); loadFonts(); })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
 var TABS = [
   { id: 'series', label: 'My Series', load: loadSeries },
   { id: 'create', label: 'Create Series', load: loadCreate },
-  { id: 'progress', label: 'Progress Tracking', load: loadProgress },
+  { id: 'progress', label: 'Sync Services', load: loadSyncServices },
   { id: 'screensavers', label: 'Screensavers', load: loadScreensavers },
+  { id: 'collections', label: 'Collections', load: loadCollections },
+  { id: 'fonts', label: 'Fonts', load: loadFonts },
   { id: 'upload', label: 'Upload Books', load: loadUpload },
   { id: 'calibre', label: 'Calibre', load: loadCalibre }
 ];
