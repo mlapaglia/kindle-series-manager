@@ -431,6 +431,20 @@ body {
   color: var(--fg-muted);
 }
 .cal-pagination-btns { display: flex; gap: 6px; }
+
+/* Nav overflow for many tabs */
+.nav { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: wrap; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .create-layout { flex-direction: column; }
+  .avail-list { max-height: 260px; }
+  .container { padding: 10px; }
+  .nav button { padding: 10px 12px; font-size: 13px; }
+  .card { padding: 12px; }
+  .cal-book { gap: 8px; padding: 8px; }
+  .cal-book-thumb { width: 40px; height: 53px; }
+}
 </style>
 </head>
 <body>
@@ -441,17 +455,10 @@ body {
   <button class="theme-toggle" onclick="toggleDark()" title="Toggle dark mode"></button>
 </div>
 
-<div class="nav">
-  <button id="btnList" onclick="loadSeries()">My Series</button>
-  <button id="btnCreate" onclick="loadCreate()">Create Series</button>
-  <button id="btnProgress" onclick="loadProgress()">Progress Tracking</button>
-  <button id="btnScreensavers" onclick="loadScreensavers()">Screensavers</button>
-  <button id="btnUpload" onclick="loadUpload()">Upload Books</button>
-  <button id="btnCalibre" onclick="loadCalibre()">Calibre</button>
-</div>
+<div class="nav" id="navBar" role="tablist"></div>
 
 <div class="container">
-  <div id="status"></div>
+  <div id="status" role="status" aria-live="polite"></div>
   <div id="content"></div>
 </div>
 
@@ -479,11 +486,21 @@ function setStatus(msg) {
 function setActive(id) {
   var btns = document.querySelectorAll('.nav button');
   for (var i = 0; i < btns.length; i++) btns[i].className = '';
-  if (id) document.getElementById(id).className = 'active';
+  var el = document.getElementById('btn_' + id);
+  if (el) el.className = 'active';
+}
+
+function debounce(fn, ms) {
+  var timer;
+  return function() {
+    var ctx = this, args = arguments;
+    clearTimeout(timer);
+    timer = setTimeout(function() { fn.apply(ctx, args); }, ms);
+  };
 }
 
 function loadSeries() {
-  setActive('btnList');
+  setActive('series');
   setStatus('Loading...');
   fetch('/cgi-bin/series.cgi')
     .then(function(r) { return r.text(); })
@@ -504,7 +521,7 @@ function toggleCard(btn) {
 }
 
 function loadCreate() {
-  setActive('btnCreate');
+  setActive('create');
   setStatus('Loading books...');
   selectedBooks = [];
   editingSeriesId = null;
@@ -518,7 +535,7 @@ function loadCreate() {
 }
 
 function editSeries(seriesId) {
-  setActive('btnCreate');
+  setActive('create');
   setStatus('Loading...');
   selectedBooks = [];
   editingSeriesId = seriesId;
@@ -589,8 +606,8 @@ function renderSelected() {
       html += '<div class="selected-book" draggable="true" data-idx="' + i + '">'
         + '<span class="grip">&#x2630;</span>'
         + '<span class="pos">' + (i + 1) + '</span>'
-        + '<span class="title">' + selectedBooks[i].title + '</span>'
-        + '<span class="remove-btn" onclick="removeBook(' + i + ')">&times;</span>'
+        + '<span class="title">' + escapeHtml(selectedBooks[i].title) + '</span>'
+        + '<span class="remove-btn" data-remove-idx="' + i + '">&times;</span>'
         + '</div>';
     }
     container.innerHTML = html;
@@ -601,35 +618,49 @@ function renderSelected() {
 var dragSrcIdx = null;
 
 function setupDrag() {
-  var items = document.querySelectorAll('.selected-book');
-  for (var i = 0; i < items.length; i++) {
-    items[i].addEventListener('dragstart', function(e) {
-      dragSrcIdx = parseInt(this.getAttribute('data-idx'));
-      this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', dragSrcIdx);
-    });
-    items[i].addEventListener('dragend', function(e) {
-      this.classList.remove('dragging');
-      var all = document.querySelectorAll('.selected-book');
-      for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
-    });
-    items[i].addEventListener('dragover', function(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      var all = document.querySelectorAll('.selected-book');
-      for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
-      this.classList.add('drag-over');
-    });
-    items[i].addEventListener('drop', function(e) {
-      e.preventDefault();
-      var targetIdx = parseInt(this.getAttribute('data-idx'));
-      if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
-      var moved = selectedBooks.splice(dragSrcIdx, 1)[0];
-      selectedBooks.splice(targetIdx, 0, moved);
-      renderSelected();
-    });
-  }
+  var container = document.getElementById('selectedBooks');
+  if (!container || container._dragDelegated) return;
+  container._dragDelegated = true;
+
+  container.addEventListener('dragstart', function(e) {
+    var item = e.target.closest('.selected-book');
+    if (!item) return;
+    dragSrcIdx = parseInt(item.getAttribute('data-idx'));
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragSrcIdx);
+  });
+  container.addEventListener('dragend', function(e) {
+    var item = e.target.closest('.selected-book');
+    if (item) item.classList.remove('dragging');
+    var all = container.querySelectorAll('.selected-book');
+    for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
+  });
+  container.addEventListener('dragover', function(e) {
+    var item = e.target.closest('.selected-book');
+    if (!item) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var all = container.querySelectorAll('.selected-book');
+    for (var j = 0; j < all.length; j++) all[j].classList.remove('drag-over');
+    item.classList.add('drag-over');
+  });
+  container.addEventListener('drop', function(e) {
+    var item = e.target.closest('.selected-book');
+    if (!item) return;
+    e.preventDefault();
+    var targetIdx = parseInt(item.getAttribute('data-idx'));
+    if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+    var moved = selectedBooks.splice(dragSrcIdx, 1)[0];
+    selectedBooks.splice(targetIdx, 0, moved);
+    renderSelected();
+  });
+  container.addEventListener('click', function(e) {
+    var removeBtn = e.target.closest('[data-remove-idx]');
+    if (removeBtn) {
+      removeBook(parseInt(removeBtn.getAttribute('data-remove-idx')));
+    }
+  });
 }
 
 function filterBooks() {
@@ -702,7 +733,7 @@ function removeSeries(seriesId) {
 }
 
 function loadProgress() {
-  setActive('btnProgress');
+  setActive('progress');
   setStatus('Loading...');
   fetch('/cgi-bin/grpage.cgi')
     .then(function(r) { return r.text(); })
@@ -784,7 +815,7 @@ function grRefreshStatus() {
 }
 
 function loadScreensavers() {
-  setActive('btnScreensavers');
+  setActive('screensavers');
   setStatus('Loading...');
   fetch('/cgi-bin/ss_page.cgi')
     .then(function(r) { return r.text(); })
@@ -960,13 +991,17 @@ function ssEditorMouseDown(ev) {
   ev.target.style.cursor = 'grabbing';
 }
 
+var _ssDrawFrame = null;
+
 function ssEditorMouseMove(ev) {
   if (!_ssEditor || !_ssEditor.dragging) return;
   var c = document.getElementById('ssEditorCanvas');
   var displayScale = c.width / _ssEditor.targetW;
   _ssEditor.panX = _ssEditor.dragPanX + (ev.clientX - _ssEditor.dragStartX) / displayScale;
   _ssEditor.panY = _ssEditor.dragPanY + (ev.clientY - _ssEditor.dragStartY) / displayScale;
-  ssEditorDraw();
+  if (!_ssDrawFrame) {
+    _ssDrawFrame = requestAnimationFrame(function() { _ssDrawFrame = null; ssEditorDraw(); });
+  }
 }
 
 function ssEditorMouseUp(ev) {
@@ -994,7 +1029,9 @@ function ssEditorTouchMove(ev) {
   var displayScale = c.width / _ssEditor.targetW;
   _ssEditor.panX = _ssEditor.dragPanX + (t.clientX - _ssEditor.dragStartX) / displayScale;
   _ssEditor.panY = _ssEditor.dragPanY + (t.clientY - _ssEditor.dragStartY) / displayScale;
-  ssEditorDraw();
+  if (!_ssDrawFrame) {
+    _ssDrawFrame = requestAnimationFrame(function() { _ssDrawFrame = null; ssEditorDraw(); });
+  }
 }
 
 function ssEditorConfirm() {
@@ -1114,11 +1151,11 @@ function formatSize(bytes) {
 
 function loadUpload() {
   if (_uploadInProgress) {
-    setActive('btnUpload');
+    setActive('upload');
     renderUploadTab();
     return;
   }
-  setActive('btnUpload');
+  setActive('upload');
   setStatus('');
   uploadQueue = [];
 
@@ -1406,7 +1443,7 @@ var calState = {
 };
 
 function loadCalibre() {
-  setActive('btnCalibre');
+  setActive('calibre');
   setStatus('');
   Promise.all([
     fetch('/cgi-bin/calibre_config.cgi').then(function(r) { return r.json(); }),
@@ -1430,7 +1467,7 @@ function renderCalibreTab() {
     + '</div></div>'
     + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">'
     + '<input type="text" id="calSearch" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:120px;" placeholder="Search..." value="' + escapeHtml(calState.search) + '"'
-    + ' oninput="calState.search=this.value;calApplyFilter();">'
+    + ' oninput="calState.search=this.value;calApplyFilterDebounced();">'
     + '<select id="calSort" class="input-field input-small" style="margin-bottom:0;width:auto;" onchange="calState.sort=this.value;calApplyFilter();">'
     + '<option value="timestamp"' + (calState.sort==='timestamp'?' selected':'') + '>Date</option>'
     + '<option value="title"' + (calState.sort==='title'?' selected':'') + '>Title</option>'
@@ -1604,6 +1641,8 @@ function calApplyFilter() {
   renderCalBooks();
   renderCalPagination();
 }
+
+var calApplyFilterDebounced = debounce(calApplyFilter, 300);
 
 function calGetPage() {
   var start = calState.page * calState.perPage;
@@ -1832,6 +1871,32 @@ function calRefreshLibrary(doneCount, errCount) {
   calApplyFilter();
 }
 
+var TABS = [
+  { id: 'series', label: 'My Series', load: loadSeries },
+  { id: 'create', label: 'Create Series', load: loadCreate },
+  { id: 'progress', label: 'Progress Tracking', load: loadProgress },
+  { id: 'screensavers', label: 'Screensavers', load: loadScreensavers },
+  { id: 'upload', label: 'Upload Books', load: loadUpload },
+  { id: 'calibre', label: 'Calibre', load: loadCalibre }
+];
+
+function initNav() {
+  var nav = document.getElementById('navBar');
+  nav.innerHTML = '';
+  for (var i = 0; i < TABS.length; i++) {
+    var btn = document.createElement('button');
+    btn.id = 'btn_' + TABS[i].id;
+    btn.textContent = TABS[i].label;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-label', TABS[i].label);
+    (function(loadFn) {
+      btn.addEventListener('click', loadFn);
+    })(TABS[i].load);
+    nav.appendChild(btn);
+  }
+}
+
+initNav();
 loadSeries();
 </script>
 </body>

@@ -88,13 +88,17 @@ class TestJSSyntax:
 
 class TestNavTabs:
     def test_all_nav_buttons_have_onclick(self, html):
-        nav_buttons = re.findall(r'<button[^>]*onclick="(\w+)\(\)"[^>]*>', html)
-        assert len(nav_buttons) >= 4
+        # Buttons are generated dynamically via TABS registry with addEventListener
+        assert "TABS" in html, "Tab registry not found"
+        tab_ids = re.findall(r"id:\s*'(\w+)'", html)
+        assert len(tab_ids) >= 4, f"Expected at least 4 tabs in registry, found {len(tab_ids)}"
 
     def test_nav_button_ids(self, html):
-        expected_ids = ["btnList", "btnCreate", "btnProgress", "btnScreensavers", "btnUpload", "btnCalibre"]
+        expected_ids = ["btn_series", "btn_create", "btn_progress", "btn_screensavers", "btn_upload", "btn_calibre"]
         for btn_id in expected_ids:
-            assert f'id="{btn_id}"' in html, f"Missing nav button: {btn_id}"
+            # Dynamic buttons are created with: btn.id = 'btn_' + TABS[i].id
+            tab_id = btn_id.replace('btn_', '')
+            assert f"id: '{tab_id}'" in html, f"Missing tab in registry: {tab_id}"
 
 
 class TestCSSVariables:
