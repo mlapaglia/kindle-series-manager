@@ -11,12 +11,15 @@ env:
   FBINK_VERSION: v1.27.0
   FBINK_REPO: mlapaglia/FBInk
   FBINK_HASH: b6334723
+  TAG_NAME: ${{ github.event.release.tag_name }}
 
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Build ss_shield
         run: bash tools/ss_shield/build.sh
@@ -39,16 +42,16 @@ jobs:
           ls -la "$BIN_DIR"/fbink_*
 
       - name: Embed version
-        run: echo "${{ github.event.release.tag_name }}" > kual-extension/kindle-series-manager/VERSION
+        run: echo "$TAG_NAME" > kual-extension/kindle-series-manager/VERSION
 
       - name: Create zip archive
         run: |
-          zip -r kindle-series-manager-${{ github.event.release.tag_name }}.zip . \
+          zip -r "kindle-series-manager-${TAG_NAME}.zip" . \
             -x '.git/*' '.github/*' '.venv/*' '.pytest_cache/*' \
             'tests/*' 'tools/*' 'Dockerfile.test' 'run_tests.sh' \
             'pyproject.toml' '__pycache__/*' '*.pyc'
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: kindle-series-manager-${{ github.event.release.tag_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$TAG_NAME" "kindle-series-manager-${TAG_NAME}.zip"
