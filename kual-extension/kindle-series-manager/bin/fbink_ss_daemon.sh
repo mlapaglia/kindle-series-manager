@@ -44,23 +44,8 @@ lipc-set-prop com.lab126.blanket unload screensaver
 lipc-set-prop com.lab126.blanket unload ad_screensaver
 log "Unloaded screensaver module"
 
-draw_screensaver() {
-    IMAGES=$(ls "$SS_DIR"/bg_ss*.png 2>/dev/null)
-    if [ -z "$IMAGES" ]; then
-        log "No screensaver images found in $SS_DIR"
-        return
-    fi
-
-    COUNT=$(echo "$IMAGES" | wc -l)
-    LAST=$(cat "$STATE_FILE" 2>/dev/null || echo "0")
-    NEXT=$(( (LAST + 1) % COUNT ))
-    echo "$NEXT" > "$STATE_FILE"
-
-    IMG=$(echo "$IMAGES" | sed -n "$((NEXT + 1))p")
-    log "Showing image $((NEXT + 1)) of $COUNT: $IMG"
-
-    $FBINK -g file=$IMG -f
-}
+# Source the enhanced screensaver logic (provides draw_screensaver)
+. "$EXT_DIR/bin/fbink_ss_enhanced.sh"
 
 FIFO="/tmp/fbink_ss_events.fifo"
 rm -f "$FIFO"
@@ -74,7 +59,7 @@ lipc-wait-event -m com.lab126.powerd outOfScreenSaver >&3 2>/dev/null &
 WAKE_PID=$!
 
 # shellcheck disable=SC2064
-trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; shield_down; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; lipc-set-prop com.lab126.blanket load screensaver; lipc-set-prop com.lab126.blanket load ad_screensaver; log 'Daemon stopped, screensaver restored'; exit 0" INT TERM
+trap "kill $SLEEP_PID $WAKE_PID 2>/dev/null; shield_down; exec 3>&-; exec 3<&-; rm -f \"$FIFO\" \"$PIDFILE\" \"$STATE_FILE\"; lipc-set-prop com.lab126.blanket load screensaver; log 'Daemon stopped, screensaver restored'; exit 0" INT TERM
 
 while read -r LINE <&3; do
     log "Event: $LINE"
