@@ -4,7 +4,11 @@ echo ""
 
 DB="${DB:-/var/local/cc.db}"
 
-SERIES_ID=$(echo "$QUERY_STRING" | sed 's/id=//;s/%3A/:/g;s/%2F/\//g;s/+/ /g')
+# Full URL decode of the id param (every %XX -> raw byte, UTF-8 safe). The
+# old per-escape sed left Hebrew/non-ASCII bytes as literal %XX, so Edit
+# loaded no data for series with non-ASCII names.
+RAW_ID=$(echo "$QUERY_STRING" | sed 's/^id=//')
+SERIES_ID=$(printf '%b' "$(printf '%s' "$RAW_ID" | sed 's/+/ /g; s/%/\\x/g')")
 
 if [ -z "$SERIES_ID" ]; then
     echo '{"error":"no series ID"}'
