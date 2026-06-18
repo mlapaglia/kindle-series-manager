@@ -29,9 +29,11 @@ escape_sql() {
 read -r POST_BODY
 logit "POST body: $POST_BODY"
 
-# Simple URL decode: handle the common escapes we'll see
+# Full URL decode: + -> space, then every %XX -> raw byte (UTF-8 safe).
+# Converts %D7%90 etc. (Hebrew/non-ASCII) back to real bytes so series
+# names in any language survive instead of staying as literal "%XX" text.
 urldecode() {
-    echo "$1" | sed 's/+/ /g;s/%20/ /g;s/%3A/:/g;s/%2C/,/g;s/%2F/\//g;s/%27/'"'"'/g;s/%28/(/g;s/%29/)/g;s/%26/\&/g;s/%3D/=/g;s/%25/%/g'
+    printf '%b' "$(printf '%s' "$1" | sed 's/+/ /g; s/%/\\x/g')"
 }
 
 # Parse: name=...&asin=...&books=key1:1,key2:2,...
