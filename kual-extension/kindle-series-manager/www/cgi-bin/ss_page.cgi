@@ -30,9 +30,10 @@ case "$DEVICE_CODE" in
     04|05|09) MODEL_NAME="Kindle DX"; SS_WIDTH=824; SS_HEIGHT=1200 ;;
     06|08|0A) MODEL_NAME="Kindle Keyboard"; SS_WIDTH=600; SS_HEIGHT=800 ;;
     0E|23) MODEL_NAME="Kindle 4"; SS_WIDTH=600; SS_HEIGHT=800 ;;
-    0F|10|11|12) MODEL_NAME="Kindle Touch"; SS_WIDTH=600; SS_HEIGHT=800 ;;
+    0F|10|11) MODEL_NAME="Kindle Touch"; SS_WIDTH=600; SS_HEIGHT=800 ;;
+    12) MODEL_NAME="Kindle 5"; SS_WIDTH=600; SS_HEIGHT=800 ;;
     1B|1C|1D|1F|20|24) MODEL_NAME="Kindle PW1"; SS_WIDTH=758; SS_HEIGHT=1024 ;;
-    5A|D4|D5|D6|D7|D8|F2|17|5F|60|61|62|F4|F9) MODEL_NAME="Kindle PW2"; SS_WIDTH=1072; SS_HEIGHT=1448 ;;
+    5A|D4|D5|D6|D7|D8|F2|17|5F|60|61|62|F4|F9) MODEL_NAME="Kindle PW2"; SS_WIDTH=758; SS_HEIGHT=1024 ;;
     13|54|2A|4F|52|53) MODEL_NAME="Kindle Voyage"; SS_WIDTH=1072; SS_HEIGHT=1448 ;;
     C6|DD) MODEL_NAME="Kindle Basic (7th gen)"; SS_WIDTH=600; SS_HEIGHT=800 ;;
     0G1|0G2|0G4|0G5|0G6|0G7|0KB|0KC|0KD|0KE|0KF|0KG|0LK|0LL|TTT) MODEL_NAME="Kindle PW3"; SS_WIDTH=1072; SS_HEIGHT=1448 ;;
@@ -79,8 +80,8 @@ else
     echo "<div class='panel-header'>Select your model</div>"
     echo "<select id='ssModelSelect' class='input-field input-small' onchange='ssModelChanged(this)' style='max-width:400px;'>"
     echo "<option value='600x800'>Kindle Basic (600x800)</option>"
-    echo "<option value='758x1024'>Kindle PW1 (758x1024)</option>"
-    echo "<option value='1072x1448' selected>Kindle PW2-4 / Voyage / Oasis 1 / Kindle 11th (1072x1448)</option>"
+    echo "<option value='758x1024'>Kindle PW1-2 (758x1024)</option>"
+    echo "<option value='1072x1448' selected>Kindle PW3-4 / Voyage / Oasis 1 / Kindle 11th (1072x1448)</option>"
     echo "<option value='1236x1648'>Kindle PW5 (1236x1648)</option>"
     echo "<option value='1264x1680'>Kindle PW 12th / Oasis 2-3 / Colorsoft (1264x1680)</option>"
     echo "<option value='1860x2480'>Kindle Scribe (1860x2480)</option>"
