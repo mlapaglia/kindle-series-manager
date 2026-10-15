@@ -21,6 +21,26 @@ logit() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [create] $1" >> "$LOG"
 }
 
+# --- FW 5.19.x ---------------------------------------------------------------
+# cc.db now carries AuditLog/CompanionRelation triggers that call SQL functions
+# only the framework's own sqlite connection registers (get_entry_external_id,
+# get_series_relation_external_id, ...). Any INSERT/UPDATE/DELETE issued from the
+# sqlite3 CLI therefore fails at *prepare* time ("no such function"), which is why
+# nothing was ever created. Park the triggers while we write, then put them back.
+TRIG_BACKUP="/tmp/ksm_triggers.sql"
+drop_triggers() {
+    sqlite3 "$DB" "SELECT sql||';' FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('Entries','Series','Collections');" > "$TRIG_BACKUP" 2>> "$LOG"
+    sqlite3 "$DB" "SELECT 'DROP TRIGGER IF EXISTS '||name||';' FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('Entries','Series','Collections');" 2>> "$LOG" | sqlite3 "$DB" 2>> "$LOG"
+    logit "audit triggers parked ($(grep -c 'CREATE TRIGGER' "$TRIG_BACKUP" 2>/dev/null) saved)"
+}
+restore_triggers() {
+    if [ -s "$TRIG_BACKUP" ]; then
+        sqlite3 "$DB" < "$TRIG_BACKUP" 2>> "$LOG"
+        logit "audit triggers restored"
+    fi
+    rm -f "$TRIG_BACKUP"
+}
+
 escape_sql() {
     echo "$1" | sed "s/'/''/g"
 }
@@ -78,6 +98,7 @@ S_ID="urn:collection:1:asin-$S_KEY"
 ESC_S_ID=$(escape_sql "$S_ID")
 
 logit "Series key: $S_KEY  id: $S_ID"
+drop_triggers
 
 mntroot rw
 stop com.lab126.ccat 2>/dev/null
@@ -146,7 +167,14 @@ ESC_S_KEY=$(escape_sql "$S_KEY")
 logit "Stripping ICU for INSERT..."
 
 # Strip ICU, insert, restore
-sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(sql, ' COLLATE icu', '') WHERE type='table' AND name='Entries'; DROP INDEX IF EXISTS EntriesCredit0CollationIndex; DROP INDEX IF EXISTS EntriesTitles0Index; PRAGMA writable_schema=OFF;" 2>> "$LOG"
+sqlite3 "$DB" 2>> "$LOG" <<'SQLICUOFF'
+.dbconfig defensive off
+PRAGMA writable_schema=ON;
+UPDATE sqlite_master SET sql=REPLACE(sql, ' COLLATE icu', '') WHERE type='table' AND name='Entries';
+DROP INDEX IF EXISTS EntriesCredit0CollationIndex;
+DROP INDEX IF EXISTS EntriesTitles0Index;
+PRAGMA writable_schema=OFF;
+SQLICUOFF
 
 if [ -n "$EDIT_ID" ]; then
     OLD_S_KEY=$(echo "$EDIT_ID" | sed 's/urn:collection:1:asin-//')
@@ -221,7 +249,13 @@ sqlite3 "$DB" < "$SQL_FILE" 2>> "$LOG"
 logit "SQL done"
 
 # Restore ICU
-sqlite3 "$DB" "PRAGMA writable_schema=ON; UPDATE sqlite_master SET sql=REPLACE(REPLACE(sql, 'p_titles_0_collation,', 'p_titles_0_collation COLLATE icu,'), 'p_credits_0_name_collation,', 'p_credits_0_name_collation COLLATE icu,') WHERE type='table' AND name='Entries'; PRAGMA writable_schema=OFF;" 2>> "$LOG"
+sqlite3 "$DB" 2>> "$LOG" <<'SQLICUON'
+.dbconfig defensive off
+PRAGMA writable_schema=ON;
+UPDATE sqlite_master SET sql=REPLACE(REPLACE(sql, 'p_titles_0_collation,', 'p_titles_0_collation COLLATE icu,'), 'p_credits_0_name_collation,', 'p_credits_0_name_collation COLLATE icu,') WHERE type='table' AND name='Entries';
+PRAGMA writable_schema=OFF;
+SQLICUON
+restore_triggers
 
 rm -f "$SQL_FILE"
 
