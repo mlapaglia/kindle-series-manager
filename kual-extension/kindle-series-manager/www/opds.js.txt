@@ -1,0 +1,496 @@
+/* ===== OPDS Catalog Browser ===== */
+/* CSS to add inside <style> block, after .cal-pagination-btns rule */
+
+.opds-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin-bottom: 12px;
+}
+.opds-breadcrumb a {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.opds-breadcrumb a:hover { text-decoration: underline; }
+.opds-breadcrumb .sep { margin: 0 2px; }
+
+.opds-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-row);
+  cursor: pointer;
+}
+.opds-entry:last-child { border-bottom: none; }
+.opds-entry:hover { background: var(--surface-alt); }
+.opds-entry-nav { cursor: pointer; }
+.opds-entry-nav .opds-entry-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  background: var(--badge-bg);
+  border-radius: 6px;
+}
+.opds-entry-thumb {
+  width: 48px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--badge-bg);
+}
+.opds-entry-info { flex: 1; min-width: 0; }
+.opds-entry-title {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opds-entry-meta {
+  font-size: 12px;
+  color: var(--fg-faint);
+  margin-top: 2px;
+}
+.opds-entry-summary {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.opds-entry-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.opds-format-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--badge-bg);
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+.opds-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.opds-pagination-btns { display: flex; gap: 6px; }
+.opds-source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-row);
+}
+.opds-source-row:last-child { border-bottom: none; }
+.opds-source-name { flex: 1; font-size: 14px; }
+.opds-source-url { font-size: 12px; color: var(--fg-faint); flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== OPDS JavaScript ===== */
+/* JS to add inside <script> block, before var TABS = [ */
+
+var opdsState = {
+  sources: [],
+  currentUrl: '',
+  currentAuth: '',
+  breadcrumb: [],
+  entries: [],
+  loading: false,
+  nextUrl: '',
+  prevUrl: '',
+  feedTitle: ''
+};
+
+function loadOpds() {
+  setActive('opds');
+  setStatus('');
+  opdsFetchSources(function() {
+    renderOpdsTab();
+  });
+}
+
+function opdsFetchSources(cb) {
+  fetch('/cgi-bin/opds_sources.cgi')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      opdsState.sources = data.sources || [];
+      if (cb) cb();
+    })
+    .catch(function() {
+      opdsState.sources = [];
+      if (cb) cb();
+    });
+}
+
+function opdsSaveSources(cb) {
+  fetch('/cgi-bin/opds_sources.cgi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sources: opdsState.sources })
+  })
+    .then(function() { if (cb) cb(); })
+    .catch(function() { if (cb) cb(); });
+}
+
+function opdsAddSource() {
+  var nameEl = document.getElementById('opdsNewName');
+  var urlEl = document.getElementById('opdsNewUrl');
+  var authEl = document.getElementById('opdsNewAuth');
+  if (!nameEl || !urlEl) return;
+  var name = nameEl.value.trim();
+  var url = urlEl.value.trim();
+  var auth = authEl ? authEl.value.trim() : '';
+  if (!name || !url) { setStatus('Name and URL are required'); return; }
+  opdsState.sources.push({ name: name, url: url, auth: auth });
+  opdsSaveSources(function() {
+    renderOpdsTab();
+    setStatus('Source added');
+  });
+}
+
+function opdsRemoveSource(index) {
+  opdsState.sources.splice(index, 1);
+  opdsSaveSources(function() {
+    renderOpdsTab();
+    setStatus('Source removed');
+  });
+}
+
+function opdsBrowse(url, title, auth) {
+  if (!url) return;
+  opdsState.loading = true;
+  opdsState.currentUrl = url;
+  if (typeof auth !== 'undefined') opdsState.currentAuth = auth || '';
+  setStatus('Loading feed...');
+
+  if (title) {
+    opdsState.breadcrumb.push({ url: url, title: title });
+  }
+
+  var proxyUrl = '/cgi-bin/opds_proxy.cgi?url=' + encodeURIComponent(url);
+  if (opdsState.currentAuth) {
+    proxyUrl += '&auth=' + encodeURIComponent(opdsState.currentAuth);
+  }
+
+  fetch(proxyUrl)
+    .then(function(r) { return r.text(); })
+    .then(function(xmlText) {
+      opdsState.loading = false;
+      var parsed = opdsParseXml(xmlText);
+      opdsState.entries = parsed.entries;
+      opdsState.feedTitle = parsed.title;
+      opdsState.nextUrl = parsed.nextUrl;
+      opdsState.prevUrl = parsed.prevUrl;
+      setStatus('');
+      opdsRenderBrowse();
+    })
+    .catch(function(e) {
+      opdsState.loading = false;
+      setStatus('Error loading feed: ' + e);
+    });
+}
+
+function opdsParseXml(xmlText) {
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlText, 'application/xml');
+  var ns = 'http://www.w3.org/2005/Atom';
+  var dcNs = 'http://purl.org/dc/terms/';
+
+  var result = {
+    title: '',
+    entries: [],
+    nextUrl: '',
+    prevUrl: ''
+  };
+
+  var parseErr = doc.getElementsByTagName('parsererror');
+  if (parseErr.length > 0) return result;
+
+  var feedTitle = doc.getElementsByTagNameNS(ns, 'title');
+  if (feedTitle.length > 0) result.title = feedTitle[0].textContent || '';
+
+  var feedLinks = doc.getElementsByTagNameNS(ns, 'feed');
+  if (feedLinks.length > 0) {
+    var topLinks = feedLinks[0].childNodes;
+    for (var li = 0; li < topLinks.length; li++) {
+      if (topLinks[li].nodeName === 'link' || (topLinks[li].localName === 'link' && (!topLinks[li].namespaceURI || topLinks[li].namespaceURI === ns))) {
+        var rel = topLinks[li].getAttribute('rel') || '';
+        var href = topLinks[li].getAttribute('href') || '';
+        if (rel === 'next' && href) result.nextUrl = opdsResolveUrl(href);
+        if (rel === 'previous' && href) result.prevUrl = opdsResolveUrl(href);
+      }
+    }
+  }
+
+  var entries = doc.getElementsByTagNameNS(ns, 'entry');
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var item = {
+      title: '',
+      author: '',
+      summary: '',
+      coverUrl: '',
+      navLink: '',
+      downloads: []
+    };
+
+    var titleEl = entry.getElementsByTagNameNS(ns, 'title');
+    if (titleEl.length > 0) item.title = titleEl[0].textContent || '';
+
+    var authorEl = entry.getElementsByTagNameNS(ns, 'author');
+    if (authorEl.length > 0) {
+      var nameEl = authorEl[0].getElementsByTagNameNS(ns, 'name');
+      if (nameEl.length > 0) item.author = nameEl[0].textContent || '';
+    }
+
+    var summaryEl = entry.getElementsByTagNameNS(ns, 'summary');
+    if (summaryEl.length > 0) item.summary = summaryEl[0].textContent || '';
+    if (!item.summary) {
+      var contentEl = entry.getElementsByTagNameNS(ns, 'content');
+      if (contentEl.length > 0) item.summary = contentEl[0].textContent || '';
+    }
+
+    var links = entry.getElementsByTagNameNS(ns, 'link');
+    for (var j = 0; j < links.length; j++) {
+      var lnk = links[j];
+      var lRel = lnk.getAttribute('rel') || '';
+      var lType = lnk.getAttribute('type') || '';
+      var lHref = lnk.getAttribute('href') || '';
+      var lTitle = lnk.getAttribute('title') || '';
+
+      if (lRel.indexOf('http://opds-spec.org/image') === 0 || lRel.indexOf('http://opds-spec.org/cover') === 0) {
+        if (!item.coverUrl) item.coverUrl = lHref;
+      } else if (lRel.indexOf('http://opds-spec.org/image/thumbnail') === 0 || lRel.indexOf('http://opds-spec.org/thumbnail') === 0) {
+        item.coverUrl = lHref;
+      } else if (lRel.indexOf('http://opds-spec.org/acquisition') === 0) {
+        item.downloads.push({
+          url: opdsResolveUrl(lHref),
+          type: lType,
+          title: lTitle || opdsFormatLabel(lType)
+        });
+      } else if (lType.indexOf('application/atom+xml') === 0) {
+        item.navLink = opdsResolveUrl(lHref);
+      } else if (lRel === 'alternate' && lType.indexOf('application/atom+xml') === 0) {
+        if (!item.navLink) item.navLink = opdsResolveUrl(lHref);
+      } else if (lRel === 'subsection') {
+        item.navLink = opdsResolveUrl(lHref);
+      }
+    }
+
+    if (item.coverUrl && item.coverUrl.indexOf('http') !== 0) {
+      item.coverUrl = opdsResolveUrl(item.coverUrl);
+    }
+
+    result.entries.push(item);
+  }
+
+  return result;
+}
+
+function opdsResolveUrl(href) {
+  if (!href) return '';
+  if (href.indexOf('http://') === 0 || href.indexOf('https://') === 0) return href;
+  if (!opdsState.currentUrl) return href;
+  var base = opdsState.currentUrl;
+  if (href.charAt(0) === '/') {
+    var m = base.match(/^(https?:\/\/[^\/]+)/);
+    return m ? m[1] + href : href;
+  }
+  return base.replace(/\/[^\/]*$/, '/') + href;
+}
+
+function opdsFormatLabel(mimeType) {
+  if (!mimeType) return 'Download';
+  if (mimeType.indexOf('epub') >= 0) return 'EPUB';
+  if (mimeType.indexOf('mobi') >= 0 || mimeType.indexOf('x-mobipocket') >= 0) return 'MOBI';
+  if (mimeType.indexOf('pdf') >= 0) return 'PDF';
+  if (mimeType.indexOf('x-kindle') >= 0 || mimeType.indexOf('azw') >= 0) return 'AZW3';
+  if (mimeType.indexOf('fb2') >= 0) return 'FB2';
+  return 'Download';
+}
+
+function renderOpdsTab() {
+  var html = '<div class="card">'
+    + '<div class="card-header"><span class="card-title">OPDS Catalog Browser</span></div>';
+
+  html += '<div style="margin-bottom:12px;">'
+    + '<div class="panel-header">Saved Sources</div>';
+
+  if (opdsState.sources.length === 0) {
+    html += '<div class="empty-state">No OPDS sources saved. Add one below.</div>';
+  } else {
+    html += '<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px;">';
+    for (var i = 0; i < opdsState.sources.length; i++) {
+      var s = opdsState.sources[i];
+      html += '<div class="opds-source-row">'
+        + '<span class="opds-source-name">' + escapeHtml(s.name) + '</span>'
+        + '<span class="opds-source-url">' + escapeHtml(s.url) + '</span>'
+        + '<button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="opdsState.breadcrumb=[]; opdsBrowse(\'' + escapeHtml(s.url.replace(/'/g, "\\'")) + '\', \'' + escapeHtml(s.name.replace(/'/g, "\\'")) + '\', \'' + escapeHtml((s.auth || '').replace(/'/g, "\\'")) + '\')">Browse</button>'
+        + '<button class="btn" style="font-size:12px;padding:4px 10px;color:var(--danger);" onclick="opdsRemoveSource(' + i + ')">Remove</button>'
+        + '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+    + '<input type="text" id="opdsNewName" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:100px;" placeholder="Source name">'
+    + '<input type="text" id="opdsNewUrl" class="input-field input-small" style="margin-bottom:0;flex:2;min-width:150px;" placeholder="http://server:port/opds">'
+    + '<input type="text" id="opdsNewAuth" class="input-field input-small" style="margin-bottom:0;flex:1;min-width:80px;" placeholder="user:pass (optional)">'
+    + '<button class="btn btn-primary" onclick="opdsAddSource()">Add Source</button>'
+    + '</div></div>';
+
+  html += '<div style="margin-bottom:12px;">'
+    + '<div class="panel-header">Browse by URL</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;">'
+    + '<input type="text" id="opdsDirectUrl" class="input-field input-small" style="margin-bottom:0;flex:1;" placeholder="http://server:port/opds">'
+    + '<input type="text" id="opdsDirectAuth" class="input-field input-small" style="margin-bottom:0;width:120px;" placeholder="user:pass">'
+    + '<button class="btn btn-primary" onclick="opdsState.breadcrumb=[]; opdsBrowse(document.getElementById(\'opdsDirectUrl\').value.trim(), \'Feed\', document.getElementById(\'opdsDirectAuth\').value.trim())">Browse</button>'
+    + '</div></div>';
+
+  html += '<div id="opdsBrowseArea"></div></div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function opdsRenderBrowse() {
+  var area = document.getElementById('opdsBrowseArea');
+  if (!area) return;
+
+  var html = '';
+
+  if (opdsState.breadcrumb.length > 0) {
+    html += '<div class="opds-breadcrumb">';
+    for (var bi = 0; bi < opdsState.breadcrumb.length; bi++) {
+      if (bi > 0) html += '<span class="sep">&rsaquo;</span>';
+      if (bi < opdsState.breadcrumb.length - 1) {
+        html += '<a onclick="opdsBreadcrumbNav(' + bi + ')">' + escapeHtml(opdsState.breadcrumb[bi].title) + '</a>';
+      } else {
+        html += '<span>' + escapeHtml(opdsState.breadcrumb[bi].title) + '</span>';
+      }
+    }
+    html += '</div>';
+  }
+
+  if (opdsState.feedTitle) {
+    html += '<div style="font-size:15px;font-weight:500;margin-bottom:10px;">' + escapeHtml(opdsState.feedTitle) + '</div>';
+  }
+
+  if (opdsState.entries.length === 0) {
+    html += '<div class="empty-state">No entries found in this feed.</div>';
+  } else {
+    html += opdsRenderEntries(opdsState.entries);
+  }
+
+  if (opdsState.prevUrl || opdsState.nextUrl) {
+    html += '<div class="opds-pagination"><div class="opds-pagination-btns">';
+    if (opdsState.prevUrl) {
+      html += '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="opdsBrowse(\'' + escapeHtml(opdsState.prevUrl.replace(/'/g, "\\'")) + '\', null)">Previous</button>';
+    }
+    if (opdsState.nextUrl) {
+      html += '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="opdsBrowse(\'' + escapeHtml(opdsState.nextUrl.replace(/'/g, "\\'")) + '\', null)">Next</button>';
+    }
+    html += '</div></div>';
+  }
+
+  area.innerHTML = html;
+}
+
+function opdsRenderEntries(entries) {
+  var html = '<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;">';
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i];
+    if (e.navLink && e.downloads.length === 0) {
+      html += '<div class="opds-entry opds-entry-nav" onclick="opdsBrowse(\'' + escapeHtml(e.navLink.replace(/'/g, "\\'")) + '\', \'' + escapeHtml(e.title.replace(/'/g, "\\'")) + '\')">'
+        + '<div class="opds-entry-icon">&#x1F4C1;</div>'
+        + '<div class="opds-entry-info">'
+        + '<div class="opds-entry-title">' + escapeHtml(e.title) + '</div>'
+        + (e.summary ? '<div class="opds-entry-summary">' + escapeHtml(e.summary) + '</div>' : '')
+        + '</div></div>';
+    } else {
+      var coverHtml = '';
+      if (e.coverUrl) {
+        var proxiedCover = '/cgi-bin/opds_proxy.cgi?url=' + encodeURIComponent(e.coverUrl);
+        if (opdsState.currentAuth) proxiedCover += '&auth=' + encodeURIComponent(opdsState.currentAuth);
+        coverHtml = '<img class="opds-entry-thumb" src="' + proxiedCover + '" onerror="this.style.visibility=\'hidden\'">';
+      } else {
+        coverHtml = '<div class="opds-entry-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">&#x1F4D6;</div>';
+      }
+
+      html += '<div class="opds-entry">'
+        + coverHtml
+        + '<div class="opds-entry-info">'
+        + '<div class="opds-entry-title">' + escapeHtml(e.title) + '</div>'
+        + '<div class="opds-entry-meta">' + (e.author ? escapeHtml(e.author) : '') + '</div>'
+        + (e.summary ? '<div class="opds-entry-summary">' + escapeHtml(e.summary) + '</div>' : '')
+        + '</div>'
+        + '<div class="opds-entry-actions">';
+
+      if (e.navLink) {
+        html += '<button class="btn" style="font-size:12px;padding:4px 10px;" onclick="event.stopPropagation(); opdsBrowse(\'' + escapeHtml(e.navLink.replace(/'/g, "\\'")) + '\', \'' + escapeHtml(e.title.replace(/'/g, "\\'")) + '\')">Details</button>';
+      }
+
+      for (var d = 0; d < e.downloads.length; d++) {
+        var dl = e.downloads[d];
+        var dlFilename = (e.title || 'book').replace(/[\/\\:*?"<>|]/g, '_');
+        if (e.author) dlFilename += ' - ' + e.author.replace(/[\/\\:*?"<>|]/g, '_');
+        var ext = opdsFormatLabel(dl.type).toLowerCase();
+        if (ext === 'download') ext = 'epub';
+        dlFilename += '.' + ext;
+        html += '<button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="event.stopPropagation(); opdsDownload(\'' + escapeHtml(dl.url.replace(/'/g, "\\'")) + '\', \'' + escapeHtml(dlFilename.replace(/'/g, "\\'")) + '\')">'
+          + '<span class="opds-format-badge">' + escapeHtml(opdsFormatLabel(dl.type)) + '</span></button>';
+      }
+
+      html += '</div></div>';
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+function opdsDownload(url, filename) {
+  setStatus('Downloading: ' + filename + '...');
+  fetch('/cgi-bin/opds_download.cgi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'url=' + encodeURIComponent(url)
+      + '&filename=' + encodeURIComponent(filename)
+      + '&auth=' + encodeURIComponent(opdsState.currentAuth)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'ok') {
+        setStatus('Downloaded: ' + data.filename);
+      } else {
+        setStatus('Failed: ' + (data.message || 'unknown error'));
+      }
+    })
+    .catch(function(e) { setStatus('Error: ' + e); });
+}
+
+function opdsBreadcrumbNav(index) {
+  opdsState.breadcrumb = opdsState.breadcrumb.slice(0, index + 1);
+  var target = opdsState.breadcrumb[index];
+  opdsState.breadcrumb.pop();
+  opdsBrowse(target.url, target.title);
+}
+
+/* ===== TABS entry to add ===== */
+/* Add to TABS array: { id: 'opds', label: 'OPDS', load: loadOpds } */
