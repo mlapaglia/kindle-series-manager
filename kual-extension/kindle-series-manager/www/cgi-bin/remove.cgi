@@ -5,7 +5,24 @@ echo ""
 DB="${DB:-/var/local/cc.db}"
 LOG="/mnt/us/extensions/kindle-series-manager/series.log"
 
-SERIES_ID=$(echo "$QUERY_STRING" | sed 's/id=//;s/%3A/:/g;s/%2F/\//g;s/+/ /g')
+# Full URL decode: + -> space, then every %XX -> raw byte (UTF-8 safe), so
+# series names in any language survive instead of staying as literal "%XX".
+# awk rather than printf '%b' "\xHH": dash's printf has no \x escapes.
+urldecode() {
+    printf '%s' "$1" | LC_ALL=C awk '
+        BEGIN { for (i = 0; i < 256; i++) hex[sprintf("%02x", i)] = i }
+        {
+            s = $0; gsub(/\+/, " ", s); out = ""
+            while (match(s, /%[0-9A-Fa-f][0-9A-Fa-f]/)) {
+                out = out substr(s, 1, RSTART - 1) sprintf("%c", hex[tolower(substr(s, RSTART + 1, 2))])
+                s = substr(s, RSTART + 3)
+            }
+            printf "%s", out s
+        }'
+}
+
+# The id embeds the (possibly non-ASCII) series name.
+SERIES_ID=$(urldecode "$(echo "$QUERY_STRING" | sed 's/^id=//')")
 
 if [ -z "$SERIES_ID" ]; then
     echo "Error: no series ID provided"
