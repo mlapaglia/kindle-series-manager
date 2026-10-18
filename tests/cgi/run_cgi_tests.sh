@@ -145,6 +145,32 @@ assert_contains "$OUTPUT" "DCC" "returns series name"
 assert_contains "$OUTPUT" "B08BKGYQXW" "includes member books"
 
 echo ""
+echo "--- library_json.cgi ---"
+sqlite3 "$TEST_DB" "UPDATE Entries SET p_titles_0_nominal='Carl''s \"Quoted\" \\ Book', p_credits_0_name_collation='Matt Dinniman' WHERE p_cdeKey='B08V4QSV6W';"
+OUTPUT=$(DB="$TEST_DB" sh "$CGI_DIR/library_json.cgi" 2>/dev/null)
+assert_contains "$OUTPUT" "application/json" "returns JSON content type"
+TOTAL=$((TOTAL + 1))
+if echo "$OUTPUT" | sed '1,2d' | python3 -c '
+import json, sys
+d = json.loads(sys.stdin.read(), strict=False)
+books = {b["key"]: b for b in d["books"]}
+assert len(books) == 3, books
+assert books["B08BKGYQXW"]["series"] == "urn:collection:1:asin-SL-DCC"
+assert books["B08BKGYQXW"]["position"] == "1"
+assert books["B08V4QSV6W"]["title"] == "Carl'"'"'s \"Quoted\" \\ Book"
+assert books["B08V4QSV6W"]["author"] == "Matt Dinniman"
+assert books["B08V4QSV6W"]["series"] == ""
+assert d["series"] == [{"id": "urn:collection:1:asin-SL-DCC", "name": "DCC", "count": 2}]
+'; then
+    PASS=$((PASS + 1))
+    echo "  PASS: books and series parse as JSON with escaped titles"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: library_json.cgi output"
+    echo "    Got: $(echo "$OUTPUT" | head -5)"
+fi
+
+echo ""
 echo "--- books_browse.cgi ---"
 OUTPUT=$(sh "$CGI_DIR/books_browse.cgi" 2>/dev/null)
 assert_contains "$OUTPUT" "application/json" "returns JSON content type"

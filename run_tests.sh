@@ -4,7 +4,7 @@ set -eo pipefail
 echo "========================================"
 echo "  Tier 1 & 3: Python Tests"
 echo "========================================"
-python -m pytest tests/test_kindle_series.py tests/test_html_js.py -v
+python -m pytest tests/test_kindle_series.py tests/test_html_js.py tests/test_calibre_plugin.py -v
 
 echo ""
 echo "========================================"
