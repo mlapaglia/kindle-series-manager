@@ -25,6 +25,7 @@ goodreads/gr_last_progress.txt
 goodreads/gr_total_pages.txt
 goodreads/gr_sync.log
 goodreads/gr_shelf.tmp
+calibre-plugin/kindle_series_manager.zip
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

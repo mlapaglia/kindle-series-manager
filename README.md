@@ -18,6 +18,7 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 - **Custom Screensavers** — Upload images with a crop editor; auto-resize, grayscale conversion, and proper PNG encoding for your Kindle's resolution. Manage active/disabled screensavers. Enable FBInk Screensaver mode in KUAL for safer rendering that won't freeze the device on malformed images.
 - **Book Upload** — Upload compatible books from your local device.
 - **Calibre Integration** — Search and download books through your Calibre web server. 
+- **Calibre Plugin** — Send the series from your calibre library to the Kindle in one step; books are matched automatically. See [calibre-plugin/README.md](calibre-plugin/README.md).
 - **Database Backup/Restore** — One-tap backup and restore of the Kindle's `cc.db` via KUAL menu.
 - **Standalone CLI** — `kindle_series.py` for direct database manipulation on a PC (list, inspect, create, and remove series).
 
@@ -40,6 +41,10 @@ Amazon's "Group Series in Library" feature (firmware 5.13.4+) only works with st
 ## How It Works
 
 The extension runs a lightweight HTTP server on the Kindle (a static busybox binary bundled with the extension). You access the web UI from your phone or PC browser. The web UI reads and modifies the Kindle's content catalogue database (`/var/local/cc.db`) through shell CGI scripts, creating the same database structures that Amazon uses for store-purchased series.
+
+## Calibre Plugin
+
+The calibre plugin in [`calibre-plugin/`](calibre-plugin/) sends the series of your calibre books to the Kindle through the web UI. Start the Web UI on the Kindle, enter its address in the plugin's settings, select books in calibre and click **Kindle Series**. A preview shows each series, the books found on the Kindle and how they were matched (calibre id, file path or title) before anything is written. Details: [calibre-plugin/README.md](calibre-plugin/README.md).
 
 ## Standalone CLI Tool
 

@@ -48,10 +48,17 @@ jobs:
         run: |
           zip -r "kindle-series-manager-${TAG_NAME}.zip" . \
             -x '.git/*' '.github/*' '.venv/*' '.pytest_cache/*' \
-            'tests/*' 'tools/*' 'Dockerfile.test' 'run_tests.sh' \
+            'tests/*' 'tools/*' 'calibre-plugin/*' 'Dockerfile.test' 'run_tests.sh' \
             'pyproject.toml' '__pycache__/*' '*.pyc'
+
+      - name: Build calibre plugin
+        run: |
+          python3 calibre-plugin/build.py
+          mv calibre-plugin/kindle_series_manager.zip "kindle-series-manager-calibre-plugin-${TAG_NAME}.zip"
 
       - name: Upload release asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$TAG_NAME" "kindle-series-manager-${TAG_NAME}.zip"
+        run: |
+          gh release upload "$TAG_NAME" "kindle-series-manager-${TAG_NAME}.zip"
+          gh release upload "$TAG_NAME" "kindle-series-manager-calibre-plugin-${TAG_NAME}.zip"
